@@ -76,7 +76,12 @@ class ServicioTarifasTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> servicio.cotizar(
-                        crearApartamento(), estancia, ocupantes, new Temporada[0]));
+                        crearApartamento(),
+                        estancia,
+                        ocupantes,
+                        new Temporada[] {
+                            temporada(TipoTemporada.BAJA, "2026-03-11", "2026-03-12")
+                        }));
         assertThrows(
                 IllegalStateException.class,
                 () -> servicio.cotizar(
@@ -109,6 +114,10 @@ class ServicioTarifasTest {
                 IllegalArgumentException.class,
                 () -> servicio.cotizar(
                         crearApartamento(), estancia, new Ocupante[] {null}, temporadas));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.cotizar(
+                        crearApartamento(), estancia, ocupantes, new Temporada[0]));
 
         ServicioTarifas.Cotizacion cotizacion =
                 servicio.cotizar(crearApartamento(), estancia, ocupantes, temporadas);
