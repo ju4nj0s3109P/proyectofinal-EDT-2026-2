@@ -22,6 +22,13 @@ public interface IndiceReservas {
      */
     boolean retirarSiExiste(Reserva reserva);
 
+    /**
+     * Comprueba todas las asignaciones sin insertar ni modificar datos.
+     * Las reservas con el mismo folio se consideran la misma reserva y no causan
+     * conflicto consigo mismas.
+     */
+    boolean estaDisponible(Reserva reserva);
+
     /** Indica si todas las asignaciones de la reserva están activas en el índice. */
     boolean contiene(Reserva reserva);
 }

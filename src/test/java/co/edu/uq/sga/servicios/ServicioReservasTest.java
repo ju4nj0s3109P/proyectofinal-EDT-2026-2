@@ -21,6 +21,26 @@ import org.junit.jupiter.api.Test;
 class ServicioReservasTest {
 
     @Test
+    void consultaDisponibilidadSinModificarLaReserva() {
+        IndiceFalso indice = new IndiceFalso();
+        ServicioReservas servicio = new ServicioReservas(indice);
+        Reserva reserva = reserva("R-D", CanalReserva.PORTAL, apartamento());
+
+        assertTrue(servicio.consultarDisponibilidad(reserva));
+        assertFalse(indice.contiene(reserva));
+        indice.conflictoConsulta = true;
+        assertFalse(servicio.consultarDisponibilidad(reserva));
+
+        Apartamento fueraDeServicio = apartamento();
+        fueraDeServicio.marcarFueraDeServicio("mantenimiento");
+        Reserva noDisponible = reserva("R-F", CanalReserva.PORTAL, fueraDeServicio);
+        indice.conflictoConsulta = false;
+        assertFalse(servicio.consultarDisponibilidad(noDisponible));
+        assertThrows(IllegalArgumentException.class,
+                () -> servicio.consultarDisponibilidad(null));
+    }
+
+    @Test
     void registraPortalPendienteYConfirmaAlAlcanzarAnticipoMinimo() {
         IndiceFalso indice = new IndiceFalso();
         ServicioReservas servicio = new ServicioReservas(indice);
@@ -192,6 +212,7 @@ class ServicioReservasTest {
     private static final class IndiceFalso implements IndiceReservas {
         private Reserva registrada;
         private boolean rechazarSiguiente;
+        private boolean conflictoConsulta;
 
         @Override
         public boolean agregarSiDisponible(Reserva reserva) {
@@ -213,6 +234,13 @@ class ServicioReservasTest {
             }
             registrada = null;
             return true;
+        }
+
+        @Override
+        public boolean estaDisponible(Reserva reserva) {
+            return !conflictoConsulta
+                    && (registrada == null
+                            || registrada.getFolio().equals(reserva.getFolio()));
         }
 
         @Override

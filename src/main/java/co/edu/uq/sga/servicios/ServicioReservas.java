@@ -9,6 +9,7 @@ import co.edu.uq.sga.dominio.excepciones.AnticipoInsuficienteException;
 import co.edu.uq.sga.dominio.excepciones.ConflictoDisponibilidadException;
 import co.edu.uq.sga.dominio.excepciones.ExcepcionDominio;
 import co.edu.uq.sga.dominio.modelo.Apartamento;
+import co.edu.uq.sga.dominio.modelo.AsignacionApartamento;
 import co.edu.uq.sga.dominio.modelo.Folio;
 import co.edu.uq.sga.dominio.modelo.MovimientoFolio;
 import co.edu.uq.sga.dominio.modelo.Reserva;
@@ -26,6 +27,23 @@ public class ServicioReservas {
             throw new IllegalArgumentException("El índice de reservas es obligatorio.");
         }
         this.indice = indice;
+    }
+
+    /**
+     * Consulta disponibilidad sin registrar ni modificar la reserva.
+     * Los apartamentos fuera de servicio no se ofrecen aunque el intervalo esté libre.
+     */
+    public boolean consultarDisponibilidad(Reserva reserva) {
+        if (reserva == null) {
+            throw new IllegalArgumentException("La reserva es obligatoria.");
+        }
+        for (AsignacionApartamento asignacion : reserva.getAsignaciones()) {
+            if (asignacion.getApartamento().getEstadoOperativo()
+                    == EstadoApartamento.FUERA_DE_SERVICIO) {
+                return false;
+            }
+        }
+        return indice.estaDisponible(reserva);
     }
 
     /** Registra desde el portal y mantiene la reserva pendiente. */

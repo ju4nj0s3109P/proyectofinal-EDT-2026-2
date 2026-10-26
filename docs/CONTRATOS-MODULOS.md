@@ -25,6 +25,7 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 - `agregarSiDisponible(Reserva)` comprueba de forma atómica todas las asignaciones de la reserva. Si cualquiera se solapa con una reserva activa, devuelve `false` y no inserta ninguna asignación. Si no hay conflictos, indexa todas y devuelve `true`.
 - `retirarSiExiste(Reserva)` quita de forma atómica todas las asignaciones por folio y devuelve `true` si las retiró; devuelve `false` si no estaban indexadas.
 - `contiene(Reserva)` informa si las asignaciones completas de esa reserva están en el índice.
+- `estaDisponible(Reserva)` consulta todas las asignaciones de forma atómica, sin mutar el árbol. Devuelve `false` si hay solapamiento; omite del conflicto las entradas del mismo folio para que una reserva pueda consultar su propio intervalo.
 - El árbol se organiza por código de apartamento y fecha de entrada. La comprobación de solapamiento recorre recursivamente las reservas relevantes y usa intervalos semiabiertos `[entrada, salida)`.
 - Pendiente, Confirmada y En curso son estados activos que bloquean noches. Cancelada, No-show y Finalizada no bloquean.
 - Cada reserva multia-apartamento se agrega o se retira como una sola operación; nunca debe quedar indexada parcialmente.
@@ -36,3 +37,5 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 - Cancelación previa al check-in: permite Pendiente o Confirmada, muestra saldo a favor antes de ejecutarse y devuelve el 100 % del saldo positivo a favor mientras no se apruebe otra política.
 
 - `ServicioReservas.expirarPendiente(Reserva, LocalDateTime)` devuelve `true` si venció y fue retirada del índice; devuelve `false` antes de cumplir las 24 horas. Solo aplica a reservas pendientes del portal.
+
+- `ServicioReservas.consultarDisponibilidad(Reserva)` devuelve `false` ante conflicto o si algún apartamento está fuera de servicio; no registra ni modifica la reserva.
