@@ -135,6 +135,22 @@ class ReservaTest {
     }
 
     @Test
+    void rechazaUnaReservaPendienteYNoPermiteRechazarOtrosEstados() {
+        Reserva pendiente = crearReserva(
+                new Ocupante[] {crearOcupante("Ana")},
+                new AsignacionApartamento[] {asignar(crearApartamento("A-1", 1))});
+        pendiente.rechazar();
+        assertEquals(EstadoReserva.RECHAZADA, pendiente.getEstado());
+        assertThrows(IllegalStateException.class, pendiente::rechazar);
+
+        Reserva confirmada = crearReserva(
+                new Ocupante[] {crearOcupante("Luis")},
+                new AsignacionApartamento[] {asignar(crearApartamento("A-2", 1))});
+        confirmada.confirmar();
+        assertThrows(IllegalStateException.class, confirmada::rechazar);
+    }
+
+    @Test
     void rechazaTransicionesInvalidas() {
         Reserva reserva = crearReserva(
                 new Ocupante[] {crearOcupante("Ana")},

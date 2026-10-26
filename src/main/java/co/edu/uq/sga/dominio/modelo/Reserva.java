@@ -72,6 +72,11 @@ public class Reserva {
         estado = EstadoReserva.CANCELADA;
     }
 
+    public void rechazar() {
+        exigirEstado(EstadoReserva.PENDIENTE, "Solo una reserva pendiente puede rechazarse.");
+        estado = EstadoReserva.RECHAZADA;
+    }
+
     public void marcarNoShow() {
         exigirEstado(EstadoReserva.CONFIRMADA,
                 "Solo una reserva confirmada puede marcarse como no-show.");

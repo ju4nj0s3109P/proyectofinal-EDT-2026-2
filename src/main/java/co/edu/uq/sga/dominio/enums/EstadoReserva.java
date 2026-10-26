@@ -7,5 +7,6 @@ public enum EstadoReserva {
     EN_CURSO,
     FINALIZADA,
     CANCELADA,
-    NO_SHOW
+    NO_SHOW,
+    RECHAZADA
 }

@@ -27,7 +27,7 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 - `contiene(Reserva)` informa si las asignaciones completas de esa reserva están en el índice.
 - `estaDisponible(Reserva)` consulta todas las asignaciones de forma atómica, sin mutar el árbol. Devuelve `false` si hay solapamiento; omite del conflicto las entradas del mismo folio para que una reserva pueda consultar su propio intervalo.
 - El árbol se organiza por código de apartamento y fecha de entrada. La comprobación de solapamiento recorre recursivamente las reservas relevantes y usa intervalos semiabiertos `[entrada, salida)`.
-- Pendiente, Confirmada y En curso son estados activos que bloquean noches. Cancelada, No-show y Finalizada no bloquean.
+- Pendiente, Confirmada y En curso son estados activos que bloquean noches. Cancelada, Rechazada, No-show y Finalizada no bloquean.
 - Cada reserva multia-apartamento se agrega o se retira como una sola operación; nunca debe quedar indexada parcialmente.
 
 ## Contratos de canal y cancelación
@@ -47,3 +47,11 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 - `ServicioPreparacion.encolar(TareaPreparacion)` agrega tareas para apartamentos pendientes y evita duplicarlas al cambiar el estado operativo.
 - `despacharSiguiente()` atiende en FIFO; se procesa una tarea a la vez y devuelve `Optional.empty()` cuando no hay tareas.
 - `completar(TareaPreparacion)` cierra la tarea actual y marca el apartamento como Preparado.
+
+
+## Procesamiento de solicitudes externas
+- `ColaSolicitudesExternas` mantiene solicitudes FIFO y permite consultar si ya hay una solicitud con el mismo folio encolada.
+- `ServicioSolicitudesExternas` añade solicitudes externas pendientes y procesa una por llamada.
+- Una solicitud sin conflicto se confirma por medio de `ServicioReservas`.
+- Un conflicto de fechas o un apartamento fuera de servicio marca la reserva como `RECHAZADA` y registra un `ConflictoReserva` mediante `RegistroConflictosReservas`.
+- La estructura de cola pertenece al módulo Estructuras; la implementación del registro de conflictos debe coordinarse con Persistencia.
