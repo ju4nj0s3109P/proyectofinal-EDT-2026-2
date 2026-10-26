@@ -16,7 +16,7 @@ class HuespedTest {
         assertEquals("Ana Pérez", huesped.getNombre());
         assertEquals("CC-12345", huesped.getDocumento());
         assertEquals(LocalDate.of(2000, 5, 10), huesped.getFechaNacimiento());
-        assertEquals(" +57 300 123 4567 ", huesped.getTelefono());
+        assertEquals("+57 300 123 4567", huesped.getTelefono());
         assertEquals("ana@example.com", huesped.getCorreo());
         assertEquals("fotos/ana.png", huesped.getRutaFotografia());
     }
