@@ -10,6 +10,8 @@ import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoApartamento;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
 import co.edu.uq.sga.dominio.enums.TipoMovimiento;
+import co.edu.uq.sga.dominio.excepciones.AnticipoInsuficienteException;
+import co.edu.uq.sga.dominio.excepciones.ConflictoDisponibilidadException;
 import co.edu.uq.sga.dominio.modelo.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,7 +30,7 @@ class ServicioReservasTest {
         assertEquals(EstadoReserva.PENDIENTE, reserva.getEstado());
         Folio folio = new Folio("R-1");
         folio.registrarMovimiento(movimiento("P-1", TipoMovimiento.PAGO, "300", null));
-        assertThrows(IllegalStateException.class,
+        assertThrows(AnticipoInsuficienteException.class,
                 () -> servicio.confirmarPortal(reserva, folio, new BigDecimal("1001")));
 
         folio.registrarMovimiento(movimiento("P-2", TipoMovimiento.PAGO, "1", null));
@@ -51,6 +53,18 @@ class ServicioReservasTest {
         assertEquals(EstadoReserva.PENDIENTE, externa.getEstado());
         assertTrue(externas.aceptarExterna(externa));
         assertEquals(EstadoReserva.CONFIRMADA, externa.getEstado());
+    }
+
+    @Test
+    void directaLanzaExcepcionEspecificaCuandoHayConflicto() {
+        IndiceFalso indice = new IndiceFalso();
+        indice.rechazarSiguiente = true;
+        ServicioReservas servicio = new ServicioReservas(indice);
+        Reserva reserva = reserva("R-C", CanalReserva.DIRECTA, apartamento());
+
+        assertThrows(ConflictoDisponibilidadException.class,
+                () -> servicio.registrarDirecta(reserva));
+        assertEquals(EstadoReserva.PENDIENTE, reserva.getEstado());
     }
 
     @Test

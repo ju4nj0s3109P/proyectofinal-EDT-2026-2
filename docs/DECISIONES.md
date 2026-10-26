@@ -28,3 +28,6 @@ Abrir PR que modifique este documento, describir impacto en módulos y esperar r
 
 ## Caducidad de reservas
 La fecha y hora de creación queda guardada en el modelo `Reserva`. El servicio cancela y libera del índice una reserva del portal si sigue pendiente al alcanzar las 24 horas exactas. El procesador que revise pendientes invoca el servicio con la hora actual; las confirmadas no se expiran.
+
+## Excepciones de dominio
+Las reglas de negocio incumplidas lanzan una subclase de `ExcepcionDominio` (`IllegalStateException`), con tipos específicos para conflicto de disponibilidad, anticipo insuficiente y transición de reserva inválida. Los argumentos nulos o mal formados continúan usando `IllegalArgumentException`.

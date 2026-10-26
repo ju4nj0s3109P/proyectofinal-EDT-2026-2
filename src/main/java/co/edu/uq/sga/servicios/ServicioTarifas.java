@@ -1,6 +1,7 @@
 package co.edu.uq.sga.servicios;
 
 import co.edu.uq.sga.dominio.enums.TipoTemporada;
+import co.edu.uq.sga.dominio.excepciones.ExcepcionDominio;
 import co.edu.uq.sga.dominio.modelo.Apartamento;
 import co.edu.uq.sga.dominio.modelo.Estancia;
 import co.edu.uq.sga.dominio.modelo.Ocupante;
@@ -71,14 +72,14 @@ public class ServicioTarifas {
         for (Temporada temporada : temporadas) {
             if (temporada.incluyeNoche(noche)) {
                 if (encontrada != null) {
-                    throw new IllegalStateException(
+                    throw new ExcepcionDominio(
                             "Hay más de una temporada definida para la noche " + noche + ".");
                 }
                 encontrada = temporada;
             }
         }
         if (encontrada == null) {
-            throw new IllegalStateException(
+            throw new ExcepcionDominio(
                     "No hay una temporada definida para la noche " + noche + ".");
         }
         return encontrada;

@@ -2,6 +2,7 @@ package co.edu.uq.sga.dominio.modelo;
 
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
+import co.edu.uq.sga.dominio.excepciones.EstadoReservaException;
 import java.time.LocalDateTime;
 
 /** Reserva de un titular, sus ocupantes, una estancia y uno o más apartamentos. */
@@ -66,7 +67,7 @@ public class Reserva {
 
     public void cancelar() {
         if (estado != EstadoReserva.PENDIENTE && estado != EstadoReserva.CONFIRMADA) {
-            throw new IllegalStateException("Solo se pueden cancelar reservas pendientes o confirmadas.");
+            throw new EstadoReservaException("Solo se pueden cancelar reservas pendientes o confirmadas.");
         }
         estado = EstadoReserva.CANCELADA;
     }
@@ -78,7 +79,7 @@ public class Reserva {
     }
 
     private void exigirEstado(EstadoReserva esperado, String mensaje) {
-        if (estado != esperado) throw new IllegalStateException(mensaje);
+        if (estado != esperado) throw new EstadoReservaException(mensaje);
     }
 
     private static String validarTexto(String valor, String nombreCampo) {

@@ -5,6 +5,9 @@ import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoApartamento;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
 import co.edu.uq.sga.dominio.enums.TipoMovimiento;
+import co.edu.uq.sga.dominio.excepciones.AnticipoInsuficienteException;
+import co.edu.uq.sga.dominio.excepciones.ConflictoDisponibilidadException;
+import co.edu.uq.sga.dominio.excepciones.ExcepcionDominio;
 import co.edu.uq.sga.dominio.modelo.Apartamento;
 import co.edu.uq.sga.dominio.modelo.Folio;
 import co.edu.uq.sga.dominio.modelo.MovimientoFolio;
@@ -64,7 +67,7 @@ public class ServicioReservas {
         BigDecimal anticipo = folio.calcularSaldo().negate().max(BigDecimal.ZERO);
         BigDecimal minimo = totalCotizacion.multiply(PORCENTAJE_ANTICIPO);
         if (anticipo.compareTo(minimo) < 0) {
-            throw new IllegalStateException("El anticipo no alcanza el 30 % de la cotización.");
+            throw new AnticipoInsuficienteException("El anticipo no alcanza el 30 % de la cotización.");
         }
         reserva.confirmar();
     }
@@ -85,7 +88,7 @@ public class ServicioReservas {
         validarReservaRegistrada(reserva, null, null);
         if (reserva.getEstado() != EstadoReserva.PENDIENTE
                 && reserva.getEstado() != EstadoReserva.CONFIRMADA) {
-            throw new IllegalStateException("Solo se puede cancelar antes del check-in.");
+            throw new ExcepcionDominio("Solo se puede cancelar antes del check-in.");
         }
         validarFolio(reserva, folio);
 
@@ -121,7 +124,7 @@ public class ServicioReservas {
             throw new IllegalArgumentException("La expiración automática solo aplica a reservas del portal.");
         }
         if (reserva.getEstado() != EstadoReserva.PENDIENTE) {
-            throw new IllegalStateException("Solo puede expirar una reserva pendiente.");
+            throw new ExcepcionDominio("Solo puede expirar una reserva pendiente.");
         }
         if (ahora.isBefore(reserva.getFechaHoraCreacion().plusHours(24))) return false;
         validarReservaRegistrada(reserva, CanalReserva.PORTAL, EstadoReserva.PENDIENTE);
@@ -143,7 +146,7 @@ public class ServicioReservas {
         Asignaciones asignaciones = obtenerAsignaciones(reserva);
         for (Apartamento apartamento : asignaciones.apartamentos()) {
             if (apartamento.getEstadoOperativo() != EstadoApartamento.PREPARADO) {
-                throw new IllegalStateException(
+                throw new ExcepcionDominio(
                         "Todos los apartamentos asignados deben estar preparados.");
             }
         }
@@ -159,7 +162,7 @@ public class ServicioReservas {
         Asignaciones asignaciones = obtenerAsignaciones(reserva);
         for (Apartamento apartamento : asignaciones.apartamentos()) {
             if (apartamento.getEstadoOperativo() != EstadoApartamento.OCUPADO) {
-                throw new IllegalStateException(
+                throw new ExcepcionDominio(
                         "Todos los apartamentos asignados deben estar ocupados.");
             }
         }
@@ -178,7 +181,7 @@ public class ServicioReservas {
             throw new IllegalArgumentException("El canal no corresponde a esta operación.");
         }
         if (reserva.getEstado() != EstadoReserva.PENDIENTE) {
-            throw new IllegalStateException("La reserva nueva debe estar pendiente.");
+            throw new ExcepcionDominio("La reserva nueva debe estar pendiente.");
         }
         validarApartamentosDisponiblesOperativamente(reserva);
     }
@@ -188,7 +191,7 @@ public class ServicioReservas {
                 : reserva.getAsignaciones()) {
             if (asignacion.getApartamento().getEstadoOperativo()
                     == EstadoApartamento.FUERA_DE_SERVICIO) {
-                throw new IllegalStateException(
+                throw new ExcepcionDominio(
                         "No se puede reservar un apartamento fuera de servicio.");
             }
         }
@@ -203,10 +206,10 @@ public class ServicioReservas {
             throw new IllegalArgumentException("El canal no corresponde a esta operación.");
         }
         if (estado != null && reserva.getEstado() != estado) {
-            throw new IllegalStateException("La reserva no está en el estado requerido.");
+            throw new ExcepcionDominio("La reserva no está en el estado requerido.");
         }
         if (!indice.contiene(reserva)) {
-            throw new IllegalStateException("La reserva no está registrada en el índice activo.");
+            throw new ExcepcionDominio("La reserva no está registrada en el índice activo.");
         }
     }
 
@@ -221,13 +224,13 @@ public class ServicioReservas {
 
     private void agregarSiDisponible(Reserva reserva) {
         if (!indice.agregarSiDisponible(reserva)) {
-            throw new IllegalStateException("Hay un conflicto de disponibilidad.");
+            throw new ConflictoDisponibilidadException("Hay un conflicto de disponibilidad.");
         }
     }
 
     private void retirarDelIndice(Reserva reserva) {
         if (!indice.retirarSiExiste(reserva)) {
-            throw new IllegalStateException("No fue posible retirar la reserva del índice.");
+            throw new ExcepcionDominio("No fue posible retirar la reserva del índice.");
         }
     }
 
