@@ -24,9 +24,10 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 
 - `agregarSiDisponible(Reserva)` comprueba de forma atómica todas las asignaciones de la reserva. Si cualquiera se solapa con una reserva activa, devuelve `false` y no inserta ninguna asignación. Si no hay conflictos, indexa todas y devuelve `true`.
 - `retirarSiExiste(Reserva)` quita de forma atómica todas las asignaciones por folio y devuelve `true` si las retiró; devuelve `false` si no estaban indexadas.
+- `contiene(Reserva)` informa si las asignaciones completas de esa reserva están en el índice.
 - El árbol se organiza por código de apartamento y fecha de entrada. La comprobación de solapamiento recorre recursivamente las reservas relevantes y usa intervalos semiabiertos `[entrada, salida)`.
 - Pendiente, Confirmada y En curso son estados activos que bloquean noches. Cancelada, No-show y Finalizada no bloquean.
-- Cada reserva multia-partamento se agrega o se retira como una sola operación; nunca debe quedar indexada parcialmente.
+- Cada reserva multia-apartamento se agrega o se retira como una sola operación; nunca debe quedar indexada parcialmente.
 
 ## Contratos de canal y cancelación
 - Portal: se registra Pendiente y se confirma con anticipo acumulado mínimo del 30 %.

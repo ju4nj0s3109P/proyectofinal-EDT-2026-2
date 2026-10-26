@@ -21,4 +21,7 @@ public interface IndiceReservas {
      * @return true si las retiró; false si la reserva no estaba indexada
      */
     boolean retirarSiExiste(Reserva reserva);
+
+    /** Indica si todas las asignaciones de la reserva están activas en el índice. */
+    boolean contiene(Reserva reserva);
 }
