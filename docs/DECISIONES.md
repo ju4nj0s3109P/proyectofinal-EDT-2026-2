@@ -15,3 +15,13 @@ Este archivo es el contrato común. El equipo acuerda aquí los cambios antes de
 
 ## Cómo cambiar un acuerdo
 Abrir PR que modifique este documento, describir impacto en módulos y esperar revisión de al menos otro integrante antes de implementar el cambio transversal.
+
+## Reglas acordadas para reservas
+1. Una reserva pendiente bloquea sus noches durante 24 horas desde su creación. Si no se confirma a tiempo, se cancela y libera todas las asignaciones.
+2. El canal Portal crea reservas pendientes. Se confirman al registrar un anticipo acumulado de al menos el 30 % de la cotización total.
+3. Las reservas Directas quedan confirmadas cuando recepción las registra y el índice acepta todas sus asignaciones.
+4. Las solicitudes Externas se procesan en orden FIFO. Una solicitud aceptada sin conflicto queda confirmada; una solicitud con conflicto se rechaza y se registra para reportes.
+5. Cancelar está permitido antes del check-in, para reservas pendientes o confirmadas. Mientras no exista una política de penalidad aprobada por el alojamiento, se devuelve el saldo a favor completo del huésped; se informa el valor antes de confirmar la cancelación.
+6. Los pagos devueltos se registran como movimientos `DEVOLUCION`. No se borran ni alteran pagos anteriores.
+7. Las reservas Pendiente, Confirmada y En curso bloquean disponibilidad. Cancelada, No-show y Finalizada se retiran del índice activo; su historial y folio se conservan.
+8. El check-in requiere que todos los apartamentos asignados estén Preparados. El check-out finaliza la reserva y marca todos los apartamentos asignados como Pendientes de preparación.

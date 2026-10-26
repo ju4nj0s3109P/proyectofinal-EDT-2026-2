@@ -47,7 +47,7 @@ public class Folio {
         for (MovimientoFolio movimiento : movimientos) {
             BigDecimal monto = movimiento.getMonto();
             switch (movimiento.getTipo()) {
-                case CARGO, REVERSO_PAGO -> saldo = saldo.add(monto);
+                case CARGO, REVERSO_PAGO, DEVOLUCION -> saldo = saldo.add(monto);
                 case PAGO, REVERSO_CARGO -> saldo = saldo.subtract(monto);
             }
         }

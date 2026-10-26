@@ -81,6 +81,16 @@ class FolioTest {
     }
 
     @Test
+    void registraDevolucionSinBorrarElPagoOriginal() {
+        Folio folio = new Folio("F-1");
+        folio.registrarMovimiento(movimiento("M-1", TipoMovimiento.PAGO, "30000", null));
+        folio.registrarMovimiento(movimiento("M-2", TipoMovimiento.DEVOLUCION, "30000", null));
+
+        assertEquals(2, folio.getMovimientos().length);
+        assertEquals(BigDecimal.ZERO, folio.calcularSaldo());
+    }
+
+    @Test
     void rechazaCodigoDeFolioVacioYMovimientoNulo() {
         assertThrows(IllegalArgumentException.class, () -> new Folio(" "));
         Folio folio = new Folio("F-1");

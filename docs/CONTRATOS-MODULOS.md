@@ -18,3 +18,18 @@ Antes de iniciar implementación paralela, definir y revisar:
 - `ServicioReservas`: disponibilidad, crear/confirmar/cancelar/check-in/check-out.
 - `ServicioPreparacion`: encolar, despachar y calcular ruta.
 Los nombres pueden cambiar por consenso, pero publiquen el contrato en un PR pequeño antes de depender de él.
+
+## Contrato del índice de reservas por apartamento
+La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre servicios y la estructura de búsqueda. La implementación del árbol pertenece al responsable de Estructuras.
+
+- `agregarSiDisponible(Reserva)` comprueba de forma atómica todas las asignaciones de la reserva. Si cualquiera se solapa con una reserva activa, devuelve `false` y no inserta ninguna asignación. Si no hay conflictos, indexa todas y devuelve `true`.
+- `retirarSiExiste(Reserva)` quita de forma atómica todas las asignaciones por folio y devuelve `true` si las retiró; devuelve `false` si no estaban indexadas.
+- El árbol se organiza por código de apartamento y fecha de entrada. La comprobación de solapamiento recorre recursivamente las reservas relevantes y usa intervalos semiabiertos `[entrada, salida)`.
+- Pendiente, Confirmada y En curso son estados activos que bloquean noches. Cancelada, No-show y Finalizada no bloquean.
+- Cada reserva multia-partamento se agrega o se retira como una sola operación; nunca debe quedar indexada parcialmente.
+
+## Contratos de canal y cancelación
+- Portal: se registra Pendiente y se confirma con anticipo acumulado mínimo del 30 %.
+- Directa: se confirma al registro, después de validar conflictos.
+- Externa: se procesa FIFO; conflicto significa rechazo y registro del conflicto.
+- Cancelación previa al check-in: permite Pendiente o Confirmada, muestra saldo a favor antes de ejecutarse y devuelve el 100 % del saldo positivo a favor mientras no se apruebe otra política.

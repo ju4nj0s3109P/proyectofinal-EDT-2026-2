@@ -5,5 +5,6 @@ public enum TipoMovimiento {
     CARGO,
     PAGO,
     REVERSO_CARGO,
-    REVERSO_PAGO
+    REVERSO_PAGO,
+    DEVOLUCION
 }
