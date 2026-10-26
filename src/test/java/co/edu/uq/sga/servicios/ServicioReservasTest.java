@@ -13,6 +13,7 @@ import co.edu.uq.sga.dominio.enums.TipoMovimiento;
 import co.edu.uq.sga.dominio.modelo.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 class ServicioReservasTest {
@@ -73,6 +74,37 @@ class ServicioReservasTest {
     }
 
     @Test
+    void expiraPendienteJustoAlCumplirVeinticuatroHoras() {
+        IndiceFalso indice = new IndiceFalso();
+        ServicioReservas servicio = new ServicioReservas(indice);
+        LocalDateTime creacion = LocalDateTime.of(2026, 10, 25, 10, 0);
+        Reserva reserva = reserva("R-7", CanalReserva.PORTAL, apartamento(), creacion);
+        servicio.registrarPortal(reserva);
+
+        assertFalse(servicio.expirarPendiente(reserva, creacion.plusHours(24).minusNanos(1)));
+        assertTrue(servicio.expirarPendiente(reserva, creacion.plusHours(24)));
+        assertEquals(EstadoReserva.CANCELADA, reserva.getEstado());
+        assertFalse(indice.contiene(reserva));
+    }
+
+    @Test
+    void noExpiraReservaPortalConfirmada() {
+        IndiceFalso indice = new IndiceFalso();
+        ServicioReservas servicio = new ServicioReservas(indice);
+        LocalDateTime creacion = LocalDateTime.of(2026, 10, 25, 10, 0);
+        Reserva reserva = reserva("R-8", CanalReserva.PORTAL, apartamento(), creacion);
+        servicio.registrarPortal(reserva);
+        Folio folio = new Folio("R-8");
+        folio.registrarMovimiento(movimiento("P-8", TipoMovimiento.PAGO, "30", null));
+        servicio.confirmarPortal(reserva, folio, new BigDecimal("100"));
+
+        assertThrows(IllegalStateException.class,
+                () -> servicio.expirarPendiente(reserva, creacion.plusHours(25)));
+        assertEquals(EstadoReserva.CONFIRMADA, reserva.getEstado());
+        assertTrue(indice.contiene(reserva));
+    }
+
+    @Test
     void checkInYCheckOutCambianReservaApartamentoEIndice() {
         IndiceFalso indice = new IndiceFalso();
         ServicioReservas servicio = new ServicioReservas(indice);
@@ -108,12 +140,18 @@ class ServicioReservasTest {
     }
 
     private Reserva reserva(String folio, CanalReserva canal, Apartamento apartamento) {
+        return reserva(folio, canal, apartamento, LocalDateTime.of(2026, 10, 25, 10, 0));
+    }
+
+    private Reserva reserva(
+            String folio, CanalReserva canal, Apartamento apartamento, LocalDateTime creacion) {
         Huesped huesped = new Huesped("Huésped", "123", LocalDate.of(1990, 1, 1),
                 "3001234567", "huesped@example.com", null);
         Ocupante[] ocupantes = {new Ocupante("Huésped", LocalDate.of(1990, 1, 1))};
         return new Reserva(folio, huesped, ocupantes,
-                new Estancia(LocalDate.of(2026, 3, 10), LocalDate.of(2026, 3, 12)),
-                canal, new AsignacionApartamento[] {new AsignacionApartamento(apartamento)});
+                new Estancia(LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 12)),
+                canal, new AsignacionApartamento[] {new AsignacionApartamento(apartamento)},
+                creacion);
     }
 
     private Apartamento apartamento() {

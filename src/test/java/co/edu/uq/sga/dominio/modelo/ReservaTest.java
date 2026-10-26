@@ -2,11 +2,13 @@ package co.edu.uq.sga.dominio.modelo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 class ReservaTest {
@@ -22,6 +24,7 @@ class ReservaTest {
         assertEquals(2, reserva.getOcupantes().length);
         assertEquals(CanalReserva.PORTAL, reserva.getCanal());
         assertEquals(EstadoReserva.PENDIENTE, reserva.getEstado());
+        assertNotNull(reserva.getFechaHoraCreacion());
         assertEquals(1, reserva.getAsignaciones().length);
     }
 

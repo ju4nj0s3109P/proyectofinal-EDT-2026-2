@@ -25,3 +25,6 @@ Abrir PR que modifique este documento, describir impacto en módulos y esperar r
 6. Los pagos devueltos se registran como movimientos `DEVOLUCION`. No se borran ni alteran pagos anteriores.
 7. Las reservas Pendiente, Confirmada y En curso bloquean disponibilidad. Cancelada, No-show y Finalizada se retiran del índice activo; su historial y folio se conservan.
 8. El check-in requiere que todos los apartamentos asignados estén Preparados. El check-out finaliza la reserva y marca todos los apartamentos asignados como Pendientes de preparación.
+
+## Caducidad de reservas
+La fecha y hora de creación queda guardada en el modelo `Reserva`. El servicio cancela y libera del índice una reserva del portal si sigue pendiente al alcanzar las 24 horas exactas. El procesador que revise pendientes invoca el servicio con la hora actual; las confirmadas no se expiran.

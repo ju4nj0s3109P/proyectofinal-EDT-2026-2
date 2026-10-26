@@ -10,6 +10,7 @@ import co.edu.uq.sga.dominio.modelo.Folio;
 import co.edu.uq.sga.dominio.modelo.MovimientoFolio;
 import co.edu.uq.sga.dominio.modelo.Reserva;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /** Coordina el ciclo de vida de una reserva con el índice y el folio. */
 public class ServicioReservas {
@@ -106,6 +107,27 @@ public class ServicioReservas {
         }
         retirarDelIndice(reserva);
         reserva.cancelar();
+    }
+
+    /**
+     * Expira una reserva del portal cuando sigue pendiente al cumplir 24 horas.
+     *
+     * @return true si venció y se liberó; false si todavía no venció
+     */
+    public boolean expirarPendiente(Reserva reserva, LocalDateTime ahora) {
+        if (reserva == null) throw new IllegalArgumentException("La reserva es obligatoria.");
+        if (ahora == null) throw new IllegalArgumentException("La fecha y hora actual son obligatorias.");
+        if (reserva.getCanal() != CanalReserva.PORTAL) {
+            throw new IllegalArgumentException("La expiración automática solo aplica a reservas del portal.");
+        }
+        if (reserva.getEstado() != EstadoReserva.PENDIENTE) {
+            throw new IllegalStateException("Solo puede expirar una reserva pendiente.");
+        }
+        if (ahora.isBefore(reserva.getFechaHoraCreacion().plusHours(24))) return false;
+        validarReservaRegistrada(reserva, CanalReserva.PORTAL, EstadoReserva.PENDIENTE);
+        retirarDelIndice(reserva);
+        reserva.cancelar();
+        return true;
     }
 
     /** Marca como no-show una reserva confirmada y libera todas sus asignaciones. */

@@ -34,3 +34,5 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 - Directa: se confirma al registro, después de validar conflictos.
 - Externa: se procesa FIFO; conflicto significa rechazo y registro del conflicto.
 - Cancelación previa al check-in: permite Pendiente o Confirmada, muestra saldo a favor antes de ejecutarse y devuelve el 100 % del saldo positivo a favor mientras no se apruebe otra política.
+
+- `ServicioReservas.expirarPendiente(Reserva, LocalDateTime)` devuelve `true` si venció y fue retirada del índice; devuelve `false` antes de cumplir las 24 horas. Solo aplica a reservas pendientes del portal.
