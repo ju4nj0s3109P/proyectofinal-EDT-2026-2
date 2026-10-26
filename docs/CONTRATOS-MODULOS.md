@@ -39,3 +39,11 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 - `ServicioReservas.expirarPendiente(Reserva, LocalDateTime)` devuelve `true` si venció y fue retirada del índice; devuelve `false` antes de cumplir las 24 horas. Solo aplica a reservas pendientes del portal.
 
 - `ServicioReservas.consultarDisponibilidad(Reserva)` devuelve `false` ante conflicto o si algún apartamento está fuera de servicio; no registra ni modifica la reserva.
+
+
+## Preparación de apartamentos
+- `ColaPreparaciones` es un puerto FIFO implementado mediante la estructura de cola del módulo Estructuras.
+- `CalculadorRutas` es un puerto hacia el grafo; devuelve una ruta con origen y destino incluidos, o un arreglo vacío si no hay ruta.
+- `ServicioPreparacion.encolar(TareaPreparacion)` agrega tareas para apartamentos pendientes y evita duplicarlas al cambiar el estado operativo.
+- `despacharSiguiente()` atiende en FIFO; se procesa una tarea a la vez y devuelve `Optional.empty()` cuando no hay tareas.
+- `completar(TareaPreparacion)` cierra la tarea actual y marca el apartamento como Preparado.

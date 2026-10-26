@@ -31,3 +31,7 @@ La fecha y hora de creación queda guardada en el modelo `Reserva`. El servicio 
 
 ## Excepciones de dominio
 Las reglas de negocio incumplidas lanzan una subclase de `ExcepcionDominio` (`IllegalStateException`), con tipos específicos para conflicto de disponibilidad, anticipo insuficiente y transición de reserva inválida. Los argumentos nulos o mal formados continúan usando `IllegalArgumentException`.
+
+
+## Preparación de apartamentos
+Una tarea recorre los estados Encolada → En proceso → Completada. Al ingresar a la cola, el apartamento pasa a En preparación para evitar duplicar tareas. El servicio despacha en FIFO, procesa una tarea a la vez y deja el apartamento Preparado al completar. El grafo decide la ruta según el criterio que establezcan los requisitos y el contrato de estructuras.
