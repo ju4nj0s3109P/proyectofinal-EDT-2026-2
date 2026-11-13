@@ -1,6 +1,7 @@
 package co.edu.uq.sga.estructuras.lineales;
 
 import co.edu.uq.sga.estructuras.excepciones.EstructuraVaciaException;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
@@ -205,6 +206,74 @@ public class ListaEnlazada<T> implements Iterable<T> {
         cabeza = null;
         cola = null;
         tamanio = 0;
+    }
+
+    // ------------------------------------------------------------- orden
+
+    public void ordenar(Comparator<? super T> comparador) {
+        Objects.requireNonNull(comparador, "El comparador es obligatorio.");
+        if (tamanio < 2) {
+            return;
+        }
+        cabeza = ordenarRecursivo(cabeza, comparador);
+        // reconstruir enlaces hacia atrás y la cola
+        Nodo<T> previo = null;
+        for (Nodo<T> n = cabeza; n != null; n = n.siguiente) {
+            n.anterior = previo;
+            previo = n;
+        }
+        cola = previo;
+    }
+
+    public ListaEnlazada<T> ordenada(Comparator<? super T> comparador) {
+        ListaEnlazada<T> copia = copiar();
+        copia.ordenar(comparador);
+        return copia;
+    }
+
+    public ListaEnlazada<T> copiar() {
+        ListaEnlazada<T> copia = new ListaEnlazada<>();
+        for (Nodo<T> n = cabeza; n != null; n = n.siguiente) {
+            copia.agregarAlFinal(n.dato);
+        }
+        return copia;
+    }
+
+    private static <T> Nodo<T> ordenarRecursivo(Nodo<T> inicio, Comparator<? super T> c) {
+        if (inicio == null || inicio.siguiente == null) {
+            return inicio;
+        }
+        Nodo<T> mitad = mitad(inicio);
+        Nodo<T> segunda = mitad.siguiente;
+        mitad.siguiente = null;
+        return mezclar(ordenarRecursivo(inicio, c), ordenarRecursivo(segunda, c), c);
+    }
+
+    private static <T> Nodo<T> mitad(Nodo<T> inicio) {
+        Nodo<T> lento = inicio;
+        Nodo<T> rapido = inicio.siguiente;
+        while (rapido != null && rapido.siguiente != null) {
+            lento = lento.siguiente;
+            rapido = rapido.siguiente.siguiente;
+        }
+        return lento;
+    }
+
+    private static <T> Nodo<T> mezclar(Nodo<T> a, Nodo<T> b, Comparator<? super T> c) {
+        Nodo<T> centinela = new Nodo<>(null);
+        Nodo<T> fin = centinela;
+        while (a != null && b != null) {
+            if (c.compare(a.dato, b.dato) <= 0) {
+                fin.siguiente = a;
+                a = a.siguiente;
+            } else {
+                fin.siguiente = b;
+                b = b.siguiente;
+            }
+            fin = fin.siguiente;
+        }
+        fin.siguiente = (a != null) ? a : b;
+        return centinela.siguiente;
     }
 
     // ------------------------------------------------------------ conversión
