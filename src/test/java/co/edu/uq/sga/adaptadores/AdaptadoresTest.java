@@ -124,14 +124,17 @@ class AdaptadoresTest {
     }
 
     @Test
-    void colaDePreparacionPorPrioridadAtiendeSegunElComparador() {
+    void colaDePreparacionPorPrioridadAtiendePrimeroLasLlegadasDeHoyPorHora() {
+        LocalDate hoy = LocalDate.of(2026, 12, 10);
         ColaPreparacionesPorPrioridad cola = new ColaPreparacionesPorPrioridad(
-                Comparator.comparing((TareaPreparacion t) -> t.getApartamento().getCodigo()).reversed());
-        cola.encolar(tarea("T-1", a101));
-        cola.encolar(tarea("T-2", a102));
+                TareaPreparacion.comparadorPorPrioridad(hoy));
+        cola.encolar(tarea("T-MANANA", a101, LocalDateTime.of(2026, 12, 11, 8, 0)));
+        cola.encolar(tarea("T-TARDE", a102, LocalDateTime.of(2026, 12, 10, 15, 0)));
+        cola.encolar(tarea("T-MANANA-HOY", a101, LocalDateTime.of(2026, 12, 10, 9, 0)));
 
-        assertEquals("T-2", cola.desencolar().getCodigo());
-        assertEquals("T-1", cola.desencolar().getCodigo());
+        assertEquals("T-MANANA-HOY", cola.desencolar().getCodigo());
+        assertEquals("T-TARDE", cola.desencolar().getCodigo());
+        assertEquals("T-MANANA", cola.desencolar().getCodigo());
         assertThrows(EstructuraVaciaException.class, cola::desencolar);
     }
 
@@ -197,7 +200,9 @@ class AdaptadoresTest {
                 CanalReserva.DIRECTA, asignaciones, LocalDateTime.of(2026, 11, 1, 9, 0));
     }
 
-    private static TareaPreparacion tarea(String codigo, Apartamento apartamento) {
-        return new TareaPreparacion(codigo, apartamento, LocalDateTime.of(2026, 12, 1, 8, 0));
+    private static TareaPreparacion tarea(
+            String codigo, Apartamento apartamento, LocalDateTime llegada) {
+        return new TareaPreparacion(
+                codigo, apartamento, LocalDateTime.of(2026, 12, 1, 8, 0), llegada);
     }
 }
