@@ -113,15 +113,12 @@ public class IndiceReservasArbol implements IndiceReservas {
     }
 
     /**
-     * El rango recursivo del árbol obtiene las entradas ordenadas por fecha.
-     * Se comprueba el intervalo semiabierto completo para no depender de una
-     * única reserva anterior, que podría no ser la de mayor duración.
+     * El recorrido inorden recursivo del árbol obtiene todas las entradas
+     * ordenadas por fecha. Se comprueba el intervalo semiabierto completo.
      */
     private static boolean hayChoque(ArbolBinarioBusqueda<EntradaReserva> arbol,
             LocalDate entrada, LocalDate salida, String folio) {
-        EntradaReserva limiteInferior = EntradaReserva.sonda(LocalDate.MIN, "");
-        EntradaReserva limiteSuperior = EntradaReserva.sonda(LocalDate.MAX, "\uFFFF");
-        for (EntradaReserva existente : arbol.rango(limiteInferior, limiteSuperior)) {
+        for (EntradaReserva existente : arbol.inorden()) {
             if (!existente.folio.equals(folio)
                     && entrada.isBefore(existente.salida)
                     && existente.entrada.isBefore(salida)) {
