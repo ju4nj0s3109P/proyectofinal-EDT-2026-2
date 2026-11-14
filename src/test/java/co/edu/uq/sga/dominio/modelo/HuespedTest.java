@@ -3,6 +3,7 @@ package co.edu.uq.sga.dominio.modelo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,16 @@ class HuespedTest {
         assertEquals("+57 300 123 4567", huesped.getTelefono());
         assertEquals("ana@example.com", huesped.getCorreo());
         assertEquals("fotos/ana.png", huesped.getRutaFotografia());
+    }
+
+    @Test
+    void ordenaHuespedesPorDocumento() {
+        Huesped primero = crearHuesped(null);
+        Huesped segundo = new Huesped(
+                "Luis", "CC-99999", LocalDate.of(1995, 1, 1),
+                "3001234567", "luis@example.com", null);
+
+        assertTrue(primero.compareTo(segundo) < 0);
     }
 
     @Test

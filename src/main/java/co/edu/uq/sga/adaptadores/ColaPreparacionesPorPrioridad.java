@@ -3,12 +3,18 @@ package co.edu.uq.sga.adaptadores;
 import co.edu.uq.sga.dominio.contratos.ColaPreparaciones;
 import co.edu.uq.sga.dominio.modelo.TareaPreparacion;
 import co.edu.uq.sga.estructuras.lineales.ColaPrioridad;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.Iterator;
 
 public class ColaPreparacionesPorPrioridad implements ColaPreparaciones, Iterable<TareaPreparacion> {
 
     private final ColaPrioridad<TareaPreparacion> cola;
+
+    /** Crea la cola con la regla de negocio de llegadas del día. */
+    public ColaPreparacionesPorPrioridad(LocalDate fechaActual) {
+        this(TareaPreparacion.comparadorPorPrioridad(fechaActual));
+    }
 
     public ColaPreparacionesPorPrioridad(Comparator<TareaPreparacion> prioridad) {
         if (prioridad == null) {

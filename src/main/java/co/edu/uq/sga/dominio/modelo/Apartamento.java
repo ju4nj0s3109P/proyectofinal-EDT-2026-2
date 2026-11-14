@@ -4,7 +4,7 @@ import co.edu.uq.sga.dominio.enums.EstadoApartamento;
 import java.math.BigDecimal;
 
 /** Modelo de un apartamento y sus datos operativos. */
-public class Apartamento {
+public class Apartamento implements Comparable<Apartamento> {
     private final String codigo;
     private final String nombre;
     private final String bloque;
@@ -51,6 +51,11 @@ public class Apartamento {
         this.tarifaMedia = validarTarifa(tarifaMedia, "tarifaMedia");
         this.tarifaAlta = validarTarifa(tarifaAlta, "tarifaAlta");
         this.estadoOperativo = EstadoApartamento.PREPARADO;
+    }
+
+    @Override
+    public int compareTo(Apartamento otro) {
+        return codigo.compareTo(otro.codigo);
     }
 
     public String getCodigo() {

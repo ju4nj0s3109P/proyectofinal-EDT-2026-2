@@ -8,8 +8,6 @@ import co.edu.uq.sga.dominio.modelo.Ocupante;
 import co.edu.uq.sga.dominio.modelo.Temporada;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /** Cotiza una estancia noche por noche para un apartamento y sus ocupantes. */
 public class ServicioTarifas {
@@ -48,12 +46,9 @@ public class ServicioTarifas {
 
         DetalleNoche[] desglose = new DetalleNoche[(int) estancia.cantidadNoches()];
         BigDecimal total = BigDecimal.ZERO;
-        Iterator<LocalDate> iteradorNoches =
-                new IteradorNoches(estancia.getFechaEntrada(), estancia.getFechaSalida());
         int indice = 0;
 
-        while (iteradorNoches.hasNext()) {
-            LocalDate noche = iteradorNoches.next();
+        for (LocalDate noche : estancia) {
             Temporada temporada = buscarTemporada(noche, temporadas);
             BigDecimal tarifa = obtenerTarifa(apartamento, temporada.getTipo());
             int pagantes = contarOcupantesPagantes(ocupantes, noche);
@@ -127,32 +122,6 @@ public class ServicioTarifas {
 
         public DetalleNoche[] getDesglose() {
             return desglose.clone();
-        }
-    }
-
-    /** Iterador propio de fechas que recorre [inicio, fin). */
-    private static final class IteradorNoches implements Iterator<LocalDate> {
-        private LocalDate siguiente;
-        private final LocalDate fechaFin;
-
-        private IteradorNoches(LocalDate fechaInicio, LocalDate fechaFin) {
-            this.siguiente = fechaInicio;
-            this.fechaFin = fechaFin;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return siguiente.isBefore(fechaFin);
-        }
-
-        @Override
-        public LocalDate next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException("No quedan noches por recorrer.");
-            }
-            LocalDate actual = siguiente;
-            siguiente = siguiente.plusDays(1);
-            return actual;
         }
     }
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import co.edu.uq.sga.dominio.enums.EstadoApartamento;
 import java.math.BigDecimal;
@@ -27,6 +28,16 @@ class ApartamentoTest {
         assertEquals(new BigDecimal("150000"), apartamento.getTarifaAlta());
         assertEquals(EstadoApartamento.PREPARADO, apartamento.getEstadoOperativo());
         assertNull(apartamento.getMotivoFueraDeServicio());
+    }
+
+    @Test
+    void ordenaApartamentosPorCodigo() {
+        Apartamento primero = crearApartamento();
+        Apartamento segundo = new Apartamento(
+                "A-102", "Suite", "A", 1, 1, 2, new String[0],
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+
+        assertTrue(primero.compareTo(segundo) < 0);
     }
 
     @Test

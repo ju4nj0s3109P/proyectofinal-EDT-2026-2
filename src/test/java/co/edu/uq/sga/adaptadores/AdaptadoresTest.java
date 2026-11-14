@@ -23,7 +23,6 @@ import co.edu.uq.sga.servicios.ServicioReservas;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import org.junit.jupiter.api.Test;
 
 class AdaptadoresTest {
@@ -46,6 +45,15 @@ class AdaptadoresTest {
         assertEquals(3, indice.reservasDe("A-101").tamanio());
         assertEquals("F-6", indice.reservasDe("A-101").primero().getFolio(), "ordenadas por entrada");
         assertEquals("[A-101, A-102]", indice.apartamentosConReservas().toString());
+    }
+
+    @Test
+    void indiceDetectaConflictoCuandoDosReservasEmpiezanElMismoDia() {
+        IndiceReservasArbol indice = new IndiceReservasArbol();
+        assertTrue(indice.agregarSiDisponible(reserva("F-1", 10, 15, a101)));
+
+        assertFalse(indice.agregarSiDisponible(reserva("F-2", 10, 12, a101)));
+        assertEquals(1, indice.reservasDe("A-101").tamanio());
     }
 
     @Test
@@ -115,14 +123,16 @@ class AdaptadoresTest {
     }
 
     @Test
-    void colaDePreparacionPorPrioridadAtiendeSegunElComparador() {
-        ColaPreparacionesPorPrioridad cola = new ColaPreparacionesPorPrioridad(
-                Comparator.comparing((TareaPreparacion t) -> t.getApartamento().getCodigo()).reversed());
-        cola.encolar(tarea("T-1", a101));
-        cola.encolar(tarea("T-2", a102));
+    void colaDePreparacionPorPrioridadAtiendePrimeroLasLlegadasDeHoyPorHora() {
+        LocalDate hoy = LocalDate.of(2026, 12, 10);
+        ColaPreparacionesPorPrioridad cola = new ColaPreparacionesPorPrioridad(hoy);
+        cola.encolar(tarea("T-MANANA", a101, LocalDateTime.of(2026, 12, 11, 8, 0)));
+        cola.encolar(tarea("T-TARDE", a102, LocalDateTime.of(2026, 12, 10, 15, 0)));
+        cola.encolar(tarea("T-MANANA-HOY", a101, LocalDateTime.of(2026, 12, 10, 9, 0)));
 
-        assertEquals("T-2", cola.desencolar().getCodigo());
-        assertEquals("T-1", cola.desencolar().getCodigo());
+        assertEquals("T-MANANA-HOY", cola.desencolar().getCodigo());
+        assertEquals("T-TARDE", cola.desencolar().getCodigo());
+        assertEquals("T-MANANA", cola.desencolar().getCodigo());
         assertThrows(EstructuraVaciaException.class, cola::desencolar);
     }
 
@@ -188,7 +198,9 @@ class AdaptadoresTest {
                 CanalReserva.DIRECTA, asignaciones, LocalDateTime.of(2026, 11, 1, 9, 0));
     }
 
-    private static TareaPreparacion tarea(String codigo, Apartamento apartamento) {
-        return new TareaPreparacion(codigo, apartamento, LocalDateTime.of(2026, 12, 1, 8, 0));
+    private static TareaPreparacion tarea(
+            String codigo, Apartamento apartamento, LocalDateTime llegada) {
+        return new TareaPreparacion(
+                codigo, apartamento, LocalDateTime.of(2026, 12, 1, 8, 0), llegada);
     }
 }

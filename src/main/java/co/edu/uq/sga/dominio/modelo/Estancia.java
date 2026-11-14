@@ -2,12 +2,14 @@ package co.edu.uq.sga.dominio.modelo;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * Rango de una estancia con fecha de entrada incluida y fecha de salida
  * excluida.
  */
-public class Estancia {
+public class Estancia implements Iterable<LocalDate> {
     private final LocalDate fechaEntrada;
     private final LocalDate fechaSalida;
 
@@ -58,5 +60,28 @@ public class Estancia {
         }
         return fechaEntrada.isBefore(otra.fechaSalida)
                 && otra.fechaEntrada.isBefore(fechaSalida);
+    }
+
+    /** Recorre las noches de la estancia desde la entrada hasta antes de la salida. */
+    @Override
+    public Iterator<LocalDate> iterator() {
+        return new Iterator<>() {
+            private LocalDate siguiente = fechaEntrada;
+
+            @Override
+            public boolean hasNext() {
+                return siguiente.isBefore(fechaSalida);
+            }
+
+            @Override
+            public LocalDate next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException("No quedan noches por recorrer.");
+                }
+                LocalDate actual = siguiente;
+                siguiente = siguiente.plusDays(1);
+                return actual;
+            }
+        };
     }
 }

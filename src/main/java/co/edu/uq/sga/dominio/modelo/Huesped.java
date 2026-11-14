@@ -3,7 +3,7 @@ package co.edu.uq.sga.dominio.modelo;
 import java.time.LocalDate;
 
 /** Perfil personal de un huésped titular o registrado en el alojamiento. */
-public class Huesped {
+public class Huesped implements Comparable<Huesped> {
     private final String nombre;
     private final String documento;
     private final LocalDate fechaNacimiento;
@@ -32,6 +32,11 @@ public class Huesped {
         this.telefono = validarTexto(telefono, "telefono");
         this.correo = validarCorreo(correo);
         this.rutaFotografia = normalizarFotografia(rutaFotografia);
+    }
+
+    @Override
+    public int compareTo(Huesped otro) {
+        return documento.compareTo(otro.documento);
     }
 
     public String getNombre() {

@@ -42,10 +42,14 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 
 
 ## Preparación de apartamentos
-- `ColaPreparaciones` es un puerto FIFO implementado mediante la estructura de cola del módulo Estructuras.
+- `ColaPreparaciones` es un puerto hacia las estructuras del módulo Estructuras; no implementa una cola propia ni fija por sí mismo la política de extracción.
+- `ColaPreparacionesEnCola` adapta la cola FIFO genérica y sirve para escenarios que requieren orden de llegada.
+- `ColaPreparacionesPorPrioridad` adapta la cola de prioridad genérica y se configura con `TareaPreparacion.comparadorPorPrioridad(fechaActual)`.
+- `TareaPreparacion` conserva por separado su fecha de creación y la fecha/hora de llegada asociada. El comparador coloca primero las llegadas de la fecha actual, ordenadas por hora; las demás quedan después en orden cronológico de llegada. La fecha de creación y el código resuelven empates de forma determinista.
+- Al crear una tarea desde una reserva, el servicio que coordine el check-out debe suministrar la fecha/hora de la próxima llegada del apartamento. No se debe inferir ese dato a partir de la fecha de creación de la tarea.
 - `CalculadorRutas` es un puerto hacia el grafo; devuelve una ruta con origen y destino incluidos, o un arreglo vacío si no hay ruta.
 - `ServicioPreparacion.encolar(TareaPreparacion)` agrega tareas para apartamentos pendientes y evita duplicarlas al cambiar el estado operativo.
-- `despacharSiguiente()` atiende en FIFO; se procesa una tarea a la vez y devuelve `Optional.empty()` cuando no hay tareas.
+- `despacharSiguiente()` retira la siguiente tarea según la política del adaptador; se procesa una tarea a la vez y devuelve `Optional.empty()` cuando no hay tareas.
 - `completar(TareaPreparacion)` cierra la tarea actual y marca el apartamento como Preparado.
 
 

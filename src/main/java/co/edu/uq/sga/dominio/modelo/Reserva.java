@@ -6,7 +6,7 @@ import co.edu.uq.sga.dominio.excepciones.EstadoReservaException;
 import java.time.LocalDateTime;
 
 /** Reserva de un titular, sus ocupantes, una estancia y uno o más apartamentos. */
-public class Reserva {
+public class Reserva implements Comparable<Reserva> {
     private final String folio;
     private final Huesped titular;
     private final Ocupante[] ocupantes;
@@ -39,6 +39,11 @@ public class Reserva {
         this.asignaciones = validarAsignaciones(asignaciones, this.ocupantes.length);
         this.fechaHoraCreacion = fechaHoraCreacion;
         this.estado = EstadoReserva.PENDIENTE;
+    }
+
+    @Override
+    public int compareTo(Reserva otra) {
+        return estancia.getFechaEntrada().compareTo(otra.estancia.getFechaEntrada());
     }
 
     public String getFolio() { return folio; }
