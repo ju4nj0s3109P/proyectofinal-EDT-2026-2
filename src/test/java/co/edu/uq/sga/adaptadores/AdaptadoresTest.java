@@ -23,7 +23,6 @@ import co.edu.uq.sga.servicios.ServicioReservas;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import org.junit.jupiter.api.Test;
 
 class AdaptadoresTest {
@@ -126,8 +125,7 @@ class AdaptadoresTest {
     @Test
     void colaDePreparacionPorPrioridadAtiendePrimeroLasLlegadasDeHoyPorHora() {
         LocalDate hoy = LocalDate.of(2026, 12, 10);
-        ColaPreparacionesPorPrioridad cola = new ColaPreparacionesPorPrioridad(
-                TareaPreparacion.comparadorPorPrioridad(hoy));
+        ColaPreparacionesPorPrioridad cola = new ColaPreparacionesPorPrioridad(hoy);
         cola.encolar(tarea("T-MANANA", a101, LocalDateTime.of(2026, 12, 11, 8, 0)));
         cola.encolar(tarea("T-TARDE", a102, LocalDateTime.of(2026, 12, 10, 15, 0)));
         cola.encolar(tarea("T-MANANA-HOY", a101, LocalDateTime.of(2026, 12, 10, 9, 0)));
