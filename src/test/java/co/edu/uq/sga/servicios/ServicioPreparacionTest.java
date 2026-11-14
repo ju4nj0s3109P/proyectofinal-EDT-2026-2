@@ -17,13 +17,13 @@ import org.junit.jupiter.api.Test;
 
 class ServicioPreparacionTest {
     @Test
-    void encolaDespachaEnFifoYCompletaLasTareas() {
+    void encolaDespachaYCompletaLasTareasSegunLaColaConfigurada() {
         ColaFalsa cola = new ColaFalsa();
         ServicioPreparacion servicio = new ServicioPreparacion(cola, new RutasFalsas());
         Apartamento apt1 = crearApartamento("A-1");
         Apartamento apt2 = crearApartamento("A-2");
-        TareaPreparacion tarea1 = crearTarea("T-1", apt1);
-        TareaPreparacion tarea2 = crearTarea("T-2", apt2);
+        TareaPreparacion tarea1 = crearTarea("T-1", apt1, 10);
+        TareaPreparacion tarea2 = crearTarea("T-2", apt2, 11);
 
         servicio.encolar(tarea1);
         servicio.encolar(tarea2);
@@ -46,7 +46,7 @@ class ServicioPreparacionTest {
     void noPermiteCompletarTareaAjenaAlServicio() {
         ServicioPreparacion servicio = new ServicioPreparacion(new ColaFalsa(), new RutasFalsas());
         assertThrows(IllegalStateException.class,
-                () -> servicio.completar(crearTarea("T-3", crearApartamento("A-3"))));
+                () -> servicio.completar(crearTarea("T-3", crearApartamento("A-3"), 10)));
     }
 
     @Test
@@ -66,8 +66,10 @@ class ServicioPreparacionTest {
                 () -> servicio.calcularRuta(" ", "A-1"));
     }
 
-    private TareaPreparacion crearTarea(String codigo, Apartamento apartamento) {
-        return new TareaPreparacion(codigo, apartamento, LocalDateTime.of(2026, 10, 26, 10, 0));
+    private TareaPreparacion crearTarea(String codigo, Apartamento apartamento, int horaLlegada) {
+        return new TareaPreparacion(codigo, apartamento,
+                LocalDateTime.of(2026, 11, 13, 10, 0),
+                LocalDateTime.of(2026, 11, 14, horaLlegada, 0));
     }
 
     private Apartamento crearApartamento(String codigo) {
