@@ -158,7 +158,7 @@ class AdaptadoresTest {
         CalculadorRutasGrafo rutas = new CalculadorRutasGrafo(mapa());
         ServicioPreparacion servicio = new ServicioPreparacion(new ColaPreparacionesEnCola(), rutas);
         a101.cambiarEstadoOperativo(EstadoApartamento.PENDIENTE_PREPARACION);
-        servicio.encolar(tarea("T-1", a101));
+        servicio.encolar(tarea("T-1", a101, LocalDateTime.of(2026, 12, 10, 10, 0)));
 
         TareaPreparacion tarea = servicio.despacharSiguiente().orElseThrow();
         assertEquals("A-101", tarea.getApartamento().getCodigo());
