@@ -9,7 +9,7 @@ import co.edu.uq.sga.dominio.modelo.Apartamento;
 import co.edu.uq.sga.dominio.modelo.TareaPreparacion;
 import java.util.Optional;
 
-/** Coordina las tareas de preparación y delega FIFO y rutas a sus estructuras. */
+/** Coordina las tareas de preparación y delega su prioridad y rutas a los adaptadores. */
 public class ServicioPreparacion {
     private final ColaPreparaciones cola;
     private final CalculadorRutas calculadorRutas;
@@ -43,7 +43,7 @@ public class ServicioPreparacion {
         apartamento.cambiarEstadoOperativo(EstadoApartamento.EN_PREPARACION);
     }
 
-    /** Despacha en FIFO; permite una tarea en proceso a la vez. */
+    /** Despacha la tarea de mayor prioridad configurada en el adaptador. */
     public Optional<TareaPreparacion> despacharSiguiente() {
         if (tareaEnProceso != null) {
             throw new ExcepcionDominio("Debe completarse la tarea actual antes de despachar otra.");
