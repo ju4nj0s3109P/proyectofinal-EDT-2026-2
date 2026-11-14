@@ -25,10 +25,7 @@ public class ListaEnlazada<T> implements Iterable<T> {
     private int tamanio;
 
     public ListaEnlazada() {
-        // lista vacía
     }
-
-    // ------------------------------------------------------------------ altas
 
     public void agregarAlInicio(T elemento) {
         Nodo<T> nuevo = new Nodo<>(validar(elemento));
@@ -80,8 +77,6 @@ public class ListaEnlazada<T> implements Iterable<T> {
         actual.anterior = nuevo;
         tamanio++;
     }
-
-    // -------------------------------------------------------------- consultas
 
     public T obtener(int indice) {
         verificarIndice(indice);
@@ -157,8 +152,6 @@ public class ListaEnlazada<T> implements Iterable<T> {
         return tamanio == 0;
     }
 
-    // ------------------------------------------------------------------ bajas
-
     public T eliminarPrimero() {
         exigirNoVacia();
         return desenlazar(cabeza);
@@ -208,15 +201,12 @@ public class ListaEnlazada<T> implements Iterable<T> {
         tamanio = 0;
     }
 
-    // ------------------------------------------------------------- orden
-
     public void ordenar(Comparator<? super T> comparador) {
         Objects.requireNonNull(comparador, "El comparador es obligatorio.");
         if (tamanio < 2) {
             return;
         }
         cabeza = ordenarRecursivo(cabeza, comparador);
-        // reconstruir enlaces hacia atrás y la cola
         Nodo<T> previo = null;
         for (Nodo<T> n = cabeza; n != null; n = n.siguiente) {
             n.anterior = previo;
@@ -276,8 +266,6 @@ public class ListaEnlazada<T> implements Iterable<T> {
         return centinela.siguiente;
     }
 
-    // ------------------------------------------------------------ conversión
-
     public T[] aArreglo(IntFunction<T[]> generador) {
         T[] arreglo = generador.apply(tamanio);
         int i = 0;
@@ -295,8 +283,6 @@ public class ListaEnlazada<T> implements Iterable<T> {
         }
         return lista;
     }
-
-    // ------------------------------------------------------------ iteración
 
     @Override
     public Iterator<T> iterator() {
@@ -343,8 +329,6 @@ public class ListaEnlazada<T> implements Iterable<T> {
         }
         return sb.append(']').toString();
     }
-
-    // ------------------------------------------------------------- auxiliares
 
     private Nodo<T> nodoEn(int indice) {
         if (indice < tamanio / 2) {

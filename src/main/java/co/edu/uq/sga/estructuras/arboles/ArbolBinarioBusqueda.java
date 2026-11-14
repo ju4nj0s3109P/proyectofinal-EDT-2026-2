@@ -23,8 +23,6 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
 
     private boolean modificado;
 
-    // ------------------------------------------------------------ inserción
-
     public boolean insertar(T elemento) {
         validar(elemento);
         modificado = false;
@@ -46,11 +44,8 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
         } else if (comparacion > 0) {
             nodo.derecho = insertar(nodo.derecho, elemento);
         }
-        // comparacion == 0: duplicado, no se inserta
         return nodo;
     }
-
-    // ------------------------------------------------------------- búsqueda
 
     public Optional<T> buscar(T sonda) {
         validar(sonda);
@@ -90,8 +85,6 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
         return nodo.derecho == null ? nodo : maximo(nodo.derecho);
     }
 
-    // ------------------------------------------------------------ eliminación
-
     public boolean eliminar(T sonda) {
         validar(sonda);
         modificado = false;
@@ -128,8 +121,6 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
         return nodo;
     }
 
-    // -------------------------------------------------------------- medidas
-
     public int altura() {
         return altura(raiz);
     }
@@ -154,8 +145,6 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
         tamanio = 0;
     }
 
-    // ------------------------------------------------- consultas ordenadas
-
     public ListaEnlazada<T> rango(T desde, T hasta) {
         validar(desde);
         validar(hasta);
@@ -173,13 +162,13 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
         boolean mayorOIgualQueDesde = nodo.dato.compareTo(desde) >= 0;
         boolean menorQueHasta = nodo.dato.compareTo(hasta) < 0;
         if (mayorOIgualQueDesde) {
-            rango(nodo.izquierdo, desde, hasta, resultado); // a la izquierda puede haber más
+            rango(nodo.izquierdo, desde, hasta, resultado);
         }
         if (mayorOIgualQueDesde && menorQueHasta) {
             resultado.agregarAlFinal(nodo.dato);
         }
         if (menorQueHasta) {
-            rango(nodo.derecho, desde, hasta, resultado); // a la derecha puede haber más
+            rango(nodo.derecho, desde, hasta, resultado);
         }
     }
 
@@ -193,7 +182,6 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
             return mejor;
         }
         if (nodo.dato.compareTo(referencia) < 0) {
-            // candidato válido; puede haber uno más cercano a la derecha
             return anterior(nodo.derecho, referencia, nodo.dato);
         }
         return anterior(nodo.izquierdo, referencia, mejor);
@@ -213,8 +201,6 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
         }
         return siguiente(nodo.derecho, referencia, mejor);
     }
-
-    // ------------------------------------------------------------- recorridos
 
     public ListaEnlazada<T> inorden() {
         ListaEnlazada<T> resultado = new ListaEnlazada<>();
@@ -292,8 +278,6 @@ public class ArbolBinarioBusqueda<T extends Comparable<T>> implements Iterable<T
             }
         };
     }
-
-    // ------------------------------------------------------------ auxiliares
 
     private void exigirNoVacio() {
         if (tamanio == 0) {

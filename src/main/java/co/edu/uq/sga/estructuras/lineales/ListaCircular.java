@@ -15,6 +15,7 @@ public class ListaCircular<T> implements Iterable<T> {
         }
     }
 
+    private Nodo<T> primero;
     private Nodo<T> actual;
     private int tamanio;
 
@@ -23,16 +24,17 @@ public class ListaCircular<T> implements Iterable<T> {
             throw new IllegalArgumentException("La lista circular no admite elementos nulos.");
         }
         Nodo<T> nuevo = new Nodo<>(elemento);
-        if (actual == null) {
+        if (primero == null) {
             nuevo.anterior = nuevo;
             nuevo.siguiente = nuevo;
+            primero = nuevo;
             actual = nuevo;
         } else {
-            Nodo<T> ultimo = actual.anterior;
+            Nodo<T> ultimo = primero.anterior;
             nuevo.anterior = ultimo;
-            nuevo.siguiente = actual;
+            nuevo.siguiente = primero;
             ultimo.siguiente = nuevo;
-            actual.anterior = nuevo;
+            primero.anterior = nuevo;
         }
         tamanio++;
     }
@@ -66,11 +68,15 @@ public class ListaCircular<T> implements Iterable<T> {
         }
         if (tamanio == 1) {
             actual = null;
+            primero = null;
         } else {
             nodo.anterior.siguiente = nodo.siguiente;
             nodo.siguiente.anterior = nodo.anterior;
             if (nodo == actual) {
                 actual = nodo.siguiente;
+            }
+            if (nodo == primero) {
+                primero = nodo.siguiente;
             }
         }
         tamanio--;

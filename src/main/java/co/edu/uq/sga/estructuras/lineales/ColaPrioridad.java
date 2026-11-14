@@ -33,8 +33,6 @@ public class ColaPrioridad<T> implements Iterable<T> {
         return new ColaPrioridad<>(Comparator.naturalOrder());
     }
 
-    // ------------------------------------------------------------ operaciones
-
     public void insertar(T elemento) {
         if (elemento == null) {
             throw new IllegalArgumentException("La cola de prioridad no admite elementos nulos.");
@@ -109,8 +107,6 @@ public class ColaPrioridad<T> implements Iterable<T> {
             }
         };
     }
-
-    // ------------------------------------------------------------ montículo
 
     private static int padre(int i) {
         return (i - 1) / 2;

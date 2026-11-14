@@ -32,7 +32,6 @@ class ColaPrioridadTest {
         while (!cola.estaVacia()) {
             orden.append(cola.extraerPrimero().apto()).append(' ');
         }
-        // sin entrada hoy: se respeta el orden de llegada a la cola (estable)
         assertEquals("C-301 B-202 B-201 A-101 A-102 ", orden.toString());
     }
 
