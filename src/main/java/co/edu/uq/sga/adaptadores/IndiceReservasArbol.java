@@ -7,7 +7,6 @@ import co.edu.uq.sga.estructuras.arboles.ArbolBinarioBusqueda;
 import co.edu.uq.sga.estructuras.arboles.DiccionarioArbol;
 import co.edu.uq.sga.estructuras.lineales.ListaEnlazada;
 import java.time.LocalDate;
-import java.util.Optional;
 
 public class IndiceReservasArbol implements IndiceReservas {
 
@@ -29,13 +28,14 @@ public class IndiceReservasArbol implements IndiceReservas {
             this.reserva = reserva;
         }
 
-        private static EntradaReserva sonda(LocalDate fecha) {
-            return new EntradaReserva(fecha, fecha, "", null);
+        private static EntradaReserva sonda(LocalDate fecha, String folio) {
+            return new EntradaReserva(fecha, fecha, folio, null);
         }
 
         @Override
         public int compareTo(EntradaReserva otra) {
-            return entrada.compareTo(otra.entrada);
+            int porEntrada = entrada.compareTo(otra.entrada);
+            return porEntrada != 0 ? porEntrada : folio.compareTo(otra.folio);
         }
     }
 
@@ -64,7 +64,7 @@ public class IndiceReservasArbol implements IndiceReservas {
         for (AsignacionApartamento asignacion : reserva.getAsignaciones()) {
             String codigo = codigo(asignacion);
             ArbolBinarioBusqueda<EntradaReserva> arbol = arbolDe(codigo, false);
-            arbol.eliminar(EntradaReserva.sonda(entrada));
+            arbol.eliminar(EntradaReserva.sonda(entrada, reserva.getFolio()));
             if (arbol.estaVacio()) {
                 porApartamento.quitar(codigo);
             }
@@ -101,8 +101,8 @@ public class IndiceReservasArbol implements IndiceReservas {
         ListaEnlazada<Reserva> resultado = new ListaEnlazada<>();
         ArbolBinarioBusqueda<EntradaReserva> arbol = arbolDe(codigoApartamento, false);
         if (arbol != null) {
-            for (EntradaReserva e : arbol.inorden()) {
-                resultado.agregarAlFinal(e.reserva);
+            for (EntradaReserva entrada : arbol) {
+                resultado.agregarAlFinal(entrada.reserva);
             }
         }
         return resultado;
@@ -112,18 +112,23 @@ public class IndiceReservasArbol implements IndiceReservas {
         return porApartamento.claves();
     }
 
+    /**
+     * El rango recursivo del árbol obtiene las entradas ordenadas por fecha.
+     * Se comprueba el intervalo semiabierto completo para no depender de una
+     * única reserva anterior, que podría no ser la de mayor duración.
+     */
     private static boolean hayChoque(ArbolBinarioBusqueda<EntradaReserva> arbol,
             LocalDate entrada, LocalDate salida, String folio) {
-        for (EntradaReserva e : arbol.rango(EntradaReserva.sonda(entrada), EntradaReserva.sonda(salida))) {
-            if (!e.folio.equals(folio)) {
+        EntradaReserva limiteInferior = EntradaReserva.sonda(LocalDate.MIN, "");
+        EntradaReserva limiteSuperior = EntradaReserva.sonda(LocalDate.MAX, "\uFFFF");
+        for (EntradaReserva existente : arbol.rango(limiteInferior, limiteSuperior)) {
+            if (!existente.folio.equals(folio)
+                    && entrada.isBefore(existente.salida)
+                    && existente.entrada.isBefore(salida)) {
                 return true;
             }
         }
-        Optional<EntradaReserva> previa = arbol.anterior(EntradaReserva.sonda(entrada));
-        if (previa.isPresent() && previa.get().folio.equals(folio)) {
-            previa = arbol.anterior(previa.get());
-        }
-        return previa.isPresent() && previa.get().salida.isAfter(entrada);
+        return false;
     }
 
     private boolean algunaIndexada(Reserva reserva) {
@@ -140,9 +145,9 @@ public class IndiceReservasArbol implements IndiceReservas {
         if (arbol == null) {
             return false;
         }
-        return arbol.buscar(EntradaReserva.sonda(reserva.getEstancia().getFechaEntrada()))
-                .map(e -> e.folio.equals(reserva.getFolio()))
-                .orElse(false);
+        return arbol.buscar(EntradaReserva.sonda(
+                        reserva.getEstancia().getFechaEntrada(), reserva.getFolio()))
+                .isPresent();
     }
 
     private ArbolBinarioBusqueda<EntradaReserva> arbolDe(String codigo, boolean crear) {
