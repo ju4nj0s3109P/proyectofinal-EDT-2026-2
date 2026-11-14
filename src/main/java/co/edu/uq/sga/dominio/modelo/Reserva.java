@@ -3,7 +3,6 @@ package co.edu.uq.sga.dominio.modelo;
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
 import co.edu.uq.sga.dominio.excepciones.EstadoReservaException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /** Reserva de un titular, sus ocupantes, una estancia y uno o más apartamentos. */
