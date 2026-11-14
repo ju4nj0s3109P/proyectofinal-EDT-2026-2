@@ -49,6 +49,24 @@ class AdaptadoresTest {
     }
 
     @Test
+    void indiceDetectaConflictoCuandoDosReservasEmpiezanElMismoDia() {
+        IndiceReservasArbol indice = new IndiceReservasArbol();
+        assertTrue(indice.agregarSiDisponible(reserva("F-1", 10, 15, a101)));
+
+        assertFalse(indice.agregarSiDisponible(reserva("F-2", 10, 12, a101)));
+        assertEquals(1, indice.reservasDe("A-101").tamanio());
+    }
+
+    @Test
+    void indiceDetectaSolapamientoAunqueLaReservaAnteriorNoSeaLaMasCercana() {
+        IndiceReservasArbol indice = new IndiceReservasArbol();
+        assertTrue(indice.agregarSiDisponible(reserva("F-1", 1, 20, a101)));
+        assertTrue(indice.agregarSiDisponible(reserva("F-2", 5, 7, a101)));
+
+        assertFalse(indice.agregarSiDisponible(reserva("F-3", 10, 12, a101)));
+    }
+
+    @Test
     void reservaConVariosApartamentosSeAgregaDeFormaAtomica() {
         IndiceReservasArbol indice = new IndiceReservasArbol();
         indice.agregarSiDisponible(reserva("F-1", 10, 12, a102));
