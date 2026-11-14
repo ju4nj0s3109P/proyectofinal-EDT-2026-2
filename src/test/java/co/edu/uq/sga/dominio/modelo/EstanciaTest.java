@@ -23,6 +23,20 @@ class EstanciaTest {
     }
 
     @Test
+    void iteraLasNochesIncluyendoEntradaYExcluyendoSalida() {
+        Estancia estancia = new Estancia(
+                LocalDate.of(2026, 3, 10),
+                LocalDate.of(2026, 3, 13));
+
+        assertEquals(
+                java.util.List.of(
+                        LocalDate.of(2026, 3, 10),
+                        LocalDate.of(2026, 3, 11),
+                        LocalDate.of(2026, 3, 12)),
+                java.util.stream.StreamSupport.stream(estancia.spliterator(), false).toList());
+    }
+
+    @Test
     void rechazaFechasNulasOSalidaAnteriorOIgualALaEntrada() {
         LocalDate entrada = LocalDate.of(2026, 3, 10);
 
