@@ -79,8 +79,6 @@ public class Grafo<T> implements Iterable<T> {
         return dirigido;
     }
 
-    // -------------------------------------------------------------- vértices
-
     public boolean agregarVertice(T dato) {
         validar(dato);
         if (buscarVertice(dato) != null) {
@@ -99,21 +97,18 @@ public class Grafo<T> implements Iterable<T> {
         if (vertice == null) {
             return false;
         }
-        // aristas que salen del vértice (en no dirigido son todas las incidentes)
         cantidadAristas -= vertice.adyacentes.tamanio();
         for (Vertice<T> v : vertices) {
             if (v != vertice) {
                 int quitadas = v.adyacentes.eliminarSi(a -> a.otroExtremo(v) == vertice);
                 if (dirigido) {
-                    cantidadAristas -= quitadas; // aristas que llegaban al vértice
+                    cantidadAristas -= quitadas;
                 }
             }
         }
         vertices.eliminar(vertice);
         return true;
     }
-
-    // --------------------------------------------------------------- aristas
 
     public void agregarArista(T origen, T destino, double peso) {
         Vertice<T> a = exigirVertice(origen);
@@ -167,8 +162,6 @@ public class Grafo<T> implements Iterable<T> {
         return arista == null ? Optional.empty() : Optional.of(arista.peso);
     }
 
-    // ------------------------------------------------------------- consultas
-
     public ListaEnlazada<T> vecinos(T dato) {
         Vertice<T> v = exigirVertice(dato);
         ListaEnlazada<T> resultado = new ListaEnlazada<>();
@@ -207,8 +200,6 @@ public class Grafo<T> implements Iterable<T> {
     public int cantidadAristas() {
         return cantidadAristas;
     }
-
-    // ------------------------------------------------------------- recorridos
 
     public ListaEnlazada<T> recorridoAnchura(T origen) {
         Vertice<T> inicio = exigirVertice(origen);
@@ -250,8 +241,6 @@ public class Grafo<T> implements Iterable<T> {
         }
     }
 
-    // ------------------------------------------------------------------ rutas
-
     private static final class Etiqueta<T> {
         private final Vertice<T> vertice;
         private final double distancia;
@@ -282,7 +271,7 @@ public class Grafo<T> implements Iterable<T> {
         while (!frontera.estaVacia()) {
             Vertice<T> actual = frontera.extraerPrimero().vertice;
             if (definitivo[actual.indice]) {
-                continue; // etiqueta vieja: ya se encontró una distancia menor
+                continue;
             }
             definitivo[actual.indice] = true;
             if (actual == fin) {
@@ -355,7 +344,7 @@ public class Grafo<T> implements Iterable<T> {
                 return Ruta.vacia();
             }
             ListaEnlazada<T> pasos = tramo.getCamino();
-            pasos.eliminarPrimero(); // el inicio del tramo ya está en el camino
+            pasos.eliminarPrimero();
             for (T paso : pasos) {
                 camino.agregarAlFinal(paso);
             }
@@ -372,8 +361,6 @@ public class Grafo<T> implements Iterable<T> {
         }
         return camino;
     }
-
-    // ------------------------------------------------------------ conectividad
 
     public ListaEnlazada<T> alcanzablesDesde(T origen) {
         return recorridoProfundidad(origen);
@@ -413,8 +400,6 @@ public class Grafo<T> implements Iterable<T> {
     public Iterator<T> iterator() {
         return vertices().iterator();
     }
-
-    // ------------------------------------------------------------ auxiliares
 
     int numerarVertices() {
         int i = 0;

@@ -14,8 +14,6 @@ import org.junit.jupiter.api.Test;
 
 class ListaCircularConjuntoDiccionarioTest {
 
-    // ---------------------------------------------------------- lista circular
-
     @Test
     void rotaTurnosVolviendoAlPrimero() {
         ListaCircular<String> turnos = new ListaCircular<>();
@@ -36,7 +34,7 @@ class ListaCircularConjuntoDiccionarioTest {
         ListaCircular<String> turnos = new ListaCircular<>();
         turnos.agregar("Ana");
         turnos.agregar("Beto");
-        turnos.avanzar(); // turno de Beto
+        turnos.avanzar();
         turnos.agregar("Carla");
 
         StringBuilder vuelta = new StringBuilder();
@@ -59,8 +57,6 @@ class ListaCircularConjuntoDiccionarioTest {
         assertThrows(EstructuraVaciaException.class, turnos::actual);
         assertThrows(EstructuraVaciaException.class, turnos::avanzar);
     }
-
-    // ---------------------------------------------------------------- conjunto
 
     @Test
     void conjuntoNoGuardaRepetidos() {
@@ -87,8 +83,6 @@ class ListaCircularConjuntoDiccionarioTest {
         assertEquals("{1, 2, 3, 4}", a.union(b).toString());
         assertEquals("{2, 3}", a.interseccion(b).toString());
     }
-
-    // --------------------------------------------------------------- diccionario
 
     @Test
     void diccionarioPoneObtieneReemplazaYQuita() {

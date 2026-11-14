@@ -119,7 +119,6 @@ class ListaEnlazadaTest {
         ListaEnlazada<String> lista = ListaEnlazada.de("pera", "kiwi", "uva", "mango", "higo", "fresa");
         lista.ordenar(Comparator.comparingInt(String::length));
 
-        // empates de longitud conservan el orden original (estable)
         assertEquals("[uva, pera, kiwi, higo, mango, fresa]", lista.toString());
         assertEquals("fresa", lista.ultimo());
         StringBuilder atras = new StringBuilder();

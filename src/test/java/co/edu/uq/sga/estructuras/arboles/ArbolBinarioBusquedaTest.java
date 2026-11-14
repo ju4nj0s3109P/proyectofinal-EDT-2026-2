@@ -53,7 +53,6 @@ class ArbolBinarioBusquedaTest {
         arbol.insertar(new Persona("1094", "Ana"));
         arbol.insertar(new Persona("1001", "Beto"));
 
-        // la sonda solo trae el documento
         Persona encontrada = arbol.buscar(new Persona("1094", null)).orElseThrow();
         assertEquals("Ana", encontrada.nombre());
         assertTrue(arbol.buscar(new Persona("9999", null)).isEmpty());
@@ -65,9 +64,9 @@ class ArbolBinarioBusquedaTest {
         ArbolBinarioBusqueda<Integer> arbol = arbolEjemplo();
         arbol.insertar(65);
 
-        assertTrue(arbol.eliminar(20)); // hoja
-        assertTrue(arbol.eliminar(60)); // un hijo (65)
-        assertTrue(arbol.eliminar(50)); // dos hijos: lo reemplaza su sucesor 65
+        assertTrue(arbol.eliminar(20));
+        assertTrue(arbol.eliminar(60));
+        assertTrue(arbol.eliminar(50));
         assertFalse(arbol.eliminar(99));
 
         assertEquals("[30, 40, 65, 70, 80]", arbol.inorden().toString());
@@ -142,7 +141,6 @@ class ArbolBinarioBusquedaTest {
 
     @Test
     void detectaSolapamientosConRangoYAnterior() {
-        // reservas activas de un apartamento: [1,4) [6,9) [12,15) de marzo
         ArbolBinarioBusqueda<Estadia> reservas = new ArbolBinarioBusqueda<>();
         reservas.insertar(Estadia.de(1, 4));
         reservas.insertar(Estadia.de(6, 9));

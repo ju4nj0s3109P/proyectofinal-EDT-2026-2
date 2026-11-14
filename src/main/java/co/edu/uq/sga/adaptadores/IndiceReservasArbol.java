@@ -112,20 +112,16 @@ public class IndiceReservasArbol implements IndiceReservas {
         return porApartamento.claves();
     }
 
-    // ------------------------------------------------------------ auxiliares
-
     private static boolean hayChoque(ArbolBinarioBusqueda<EntradaReserva> arbol,
             LocalDate entrada, LocalDate salida, String folio) {
-        // 1) reservas que empiezan dentro de [entrada, salida)
         for (EntradaReserva e : arbol.rango(EntradaReserva.sonda(entrada), EntradaReserva.sonda(salida))) {
             if (!e.folio.equals(folio)) {
                 return true;
             }
         }
-        // 2) la que empieza justo antes de la entrada: ¿termina después?
         Optional<EntradaReserva> previa = arbol.anterior(EntradaReserva.sonda(entrada));
         if (previa.isPresent() && previa.get().folio.equals(folio)) {
-            previa = arbol.anterior(previa.get()); // saltar la propia reserva
+            previa = arbol.anterior(previa.get());
         }
         return previa.isPresent() && previa.get().salida.isAfter(entrada);
     }

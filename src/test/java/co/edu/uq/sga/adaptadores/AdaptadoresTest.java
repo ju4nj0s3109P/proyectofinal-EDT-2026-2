@@ -31,8 +31,6 @@ class AdaptadoresTest {
     private final Apartamento a101 = apartamento("A-101");
     private final Apartamento a102 = apartamento("A-102");
 
-    // ------------------------------------------------------- índice de reservas
-
     @Test
     void indiceRechazaSolapamientosYAceptaNochesContiguas() {
         IndiceReservasArbol indice = new IndiceReservasArbol();
@@ -101,8 +99,6 @@ class AdaptadoresTest {
         assertThrows(ConflictoDisponibilidadException.class, () -> servicio.registrarDirecta(chocante));
     }
 
-    // ------------------------------------------------------------------- colas
-
     @Test
     void colaDeSolicitudesExternasEsFifoYBuscaPorFolio() {
         ColaSolicitudesExternasEnCola cola = new ColaSolicitudesExternasEnCola();
@@ -129,8 +125,6 @@ class AdaptadoresTest {
         assertEquals("T-1", cola.desencolar().getCodigo());
         assertThrows(EstructuraVaciaException.class, cola::desencolar);
     }
-
-    // ------------------------------------------------------------------- rutas
 
     @Test
     void calculadorDeRutasDevuelveElCaminoMasCortoComoArreglo() {
@@ -163,8 +157,6 @@ class AdaptadoresTest {
         assertEquals(EstadoApartamento.PREPARADO, a101.getEstadoOperativo());
         assertTrue(servicio.despacharSiguiente().isEmpty());
     }
-
-    // --------------------------------------------------------------- fixtures
 
     private static Grafo<String> mapa() {
         Grafo<String> g = new Grafo<>();
