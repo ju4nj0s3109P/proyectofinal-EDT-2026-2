@@ -2,6 +2,7 @@ package co.edu.uq.sga.dominio.modelo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import co.edu.uq.sga.dominio.enums.CanalReserva;
@@ -26,6 +27,22 @@ class ReservaTest {
         assertEquals(EstadoReserva.PENDIENTE, reserva.getEstado());
         assertNotNull(reserva.getFechaHoraCreacion());
         assertEquals(1, reserva.getAsignaciones().length);
+    }
+
+    @Test
+    void ordenaReservasPorFechaDeEntrada() {
+        Reserva posterior = crearReserva(
+                new Ocupante[] {crearOcupante("Ana")},
+                new AsignacionApartamento[] {asignar(crearApartamento("A-1", 1))});
+        Reserva anterior = new Reserva(
+                "F-099",
+                crearTitular(),
+                new Ocupante[] {crearOcupante("Luis")},
+                new Estancia(LocalDate.of(2026, 3, 9), LocalDate.of(2026, 3, 11)),
+                CanalReserva.PORTAL,
+                new AsignacionApartamento[] {asignar(crearApartamento("A-2", 1))});
+
+        assertTrue(anterior.compareTo(posterior) < 0);
     }
 
     @Test
