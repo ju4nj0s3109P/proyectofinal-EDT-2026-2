@@ -34,7 +34,7 @@ Las reglas de negocio incumplidas lanzan una subclase de `ExcepcionDominio` (`Il
 
 
 ## Preparación de apartamentos
-Una tarea recorre los estados Encolada → En proceso → Completada. Al ingresar a la cola, el apartamento pasa a En preparación para evitar duplicar tareas. El servicio despacha en FIFO, procesa una tarea a la vez y deja el apartamento Preparado al completar. El grafo decide la ruta según el criterio que establezcan los requisitos y el contrato de estructuras.
+Una tarea recorre los estados Encolada → En proceso → Completada. Al ingresar a la cola, el apartamento pasa a En preparación para evitar duplicar tareas. El servicio procesa una tarea a la vez y deja el apartamento Preparado al completar. La cola de prioridad genérica despacha primero las tareas cuya llegada está programada para hoy, ordenadas por hora de llegada; las demás quedan después por orden cronológico de llegada.
 
 ## Estructuras propias y capa de adaptadores
 1. **Paquetes:** `estructuras.lineales` (ListaEnlazada doble, Pila, Cola, ColaPrioridad, ListaCircular, Conjunto), `estructuras.arboles` (ArbolBinarioBusqueda, DiccionarioArbol), `estructuras.grafos` (Grafo, Ruta) y `estructuras.excepciones`. Ninguna clase de `estructuras` importa el dominio.
