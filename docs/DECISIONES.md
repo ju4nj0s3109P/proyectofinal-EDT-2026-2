@@ -35,3 +35,13 @@ Las reglas de negocio incumplidas lanzan una subclase de `ExcepcionDominio` (`Il
 
 ## Preparación de apartamentos
 Una tarea recorre los estados Encolada → En proceso → Completada. Al ingresar a la cola, el apartamento pasa a En preparación para evitar duplicar tareas. El servicio despacha en FIFO, procesa una tarea a la vez y deja el apartamento Preparado al completar. El grafo decide la ruta según el criterio que establezcan los requisitos y el contrato de estructuras.
+
+## Estructuras propias y capa de adaptadores
+1. **Paquetes:** `estructuras.lineales` (ListaEnlazada doble, Pila, Cola, ColaPrioridad, ListaCircular, Conjunto), `estructuras.arboles` (ArbolBinarioBusqueda, DiccionarioArbol), `estructuras.grafos` (Grafo, Ruta) y `estructuras.excepciones`. Ninguna clase de `estructuras` importa el dominio.
+2. **Adaptadores:** los puertos de `dominio.contratos` se implementan en `co.edu.uq.sga.adaptadores` (`IndiceReservasArbol`, `ColaSolicitudesExternasEnCola`, `ColaPreparacionesEnCola`, `ColaPreparacionesPorPrioridad`, `CalculadorRutasGrafo`). Es la única capa que conoce a la vez el dominio y las estructuras.
+3. **Vacío:** operar sobre una estructura vacía lanza `EstructuraVaciaException` (no comprobada, hereda de `NoSuchElementException`). Los argumentos nulos lanzan `IllegalArgumentException`.
+4. **Árbol binario:** sigue el orden natural (`Comparable`) y no admite duplicados (`insertar` devuelve `false`). Ofrece `rango`, `anterior` y `siguiente` recursivos para detectar solapamientos sin recorrer todo el árbol.
+5. **Diccionario:** `DiccionarioArbol<K,V>` sobre el árbol reemplaza a `HashMap`/`TreeMap` cuando se necesita clave → valor.
+6. **Cola de prioridad:** montículo binario con `Comparator`; sale primero el menor y en empate el más antiguo.
+7. **Grafo:** no dirigido, con listas de adyacencia, peso `double` positivo y pasillos que se pueden cerrar y abrir. Ofrece Dijkstra, BFS, DFS recursivo, ruta por paradas, inalcanzables y componentes conexas.
+8. **Permitido de `java.util`:** solo `Iterator`, `Comparator`, `NoSuchElementException`, `Objects`, `Optional` y `java.util.function`. Los arreglos nativos se permiten como almacenamiento interno.
