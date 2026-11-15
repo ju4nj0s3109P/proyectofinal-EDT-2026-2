@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import co.edu.uq.sga.adaptadores.PilaDeshacerFoliosArbol;
 import co.edu.uq.sga.adaptadores.RepositorioFoliosArbol;
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.TipoMovimiento;
@@ -25,7 +26,8 @@ class ServicioFoliosTest {
 
     private static final LocalDateTime AHORA = LocalDateTime.of(2026, 11, 1, 9, 0);
 
-    private final ServicioFolios servicio = new ServicioFolios(new RepositorioFoliosArbol());
+    private final ServicioFolios servicio =
+            new ServicioFolios(new RepositorioFoliosArbol(), new PilaDeshacerFoliosArbol());
 
     @Test
     void abreUnFolioPorReservaConSuMismoCodigo() {
@@ -84,7 +86,47 @@ class ServicioFoliosTest {
         assertEquals(0, servicio.obtener("R-1").getMovimientos().length);
 
         assertThrows(IllegalArgumentException.class, () -> servicio.abrir(null));
-        assertThrows(IllegalArgumentException.class, () -> new ServicioFolios(null));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ServicioFolios(null, new PilaDeshacerFoliosArbol()));
+        assertThrows(IllegalArgumentException.class,
+                () -> new ServicioFolios(new RepositorioFoliosArbol(), null));
+    }
+
+    @Test
+    void deshaceEnOrdenInversoConMovimientosContrariosSinBorrarNada() {
+        servicio.abrir(reserva("R-1"));
+        servicio.abrir(reserva("R-2"));
+        servicio.registrarCargo("R-1", new BigDecimal("1000"), "Estadía", AHORA);
+        servicio.registrarPago("R-1", new BigDecimal("300"), "Anticipo", AHORA);
+
+        MovimientoFolio reversoPago = servicio.deshacerUltima("R-1", AHORA.plusHours(1));
+        assertEquals(TipoMovimiento.REVERSO_PAGO, reversoPago.getTipo());
+        assertEquals("R-1-M2", reversoPago.getCodigoMovimientoReversado());
+        assertEquals("R-1-M3", reversoPago.getCodigo());
+        assertEquals(new BigDecimal("1000"), servicio.obtener("R-1").calcularSaldo());
+
+        MovimientoFolio reversoCargo = servicio.deshacerUltima("R-1", AHORA.plusHours(2));
+        assertEquals(TipoMovimiento.REVERSO_CARGO, reversoCargo.getTipo());
+        assertEquals("R-1-M1", reversoCargo.getCodigoMovimientoReversado());
+        assertEquals(0, servicio.obtener("R-1").calcularSaldo().signum());
+        assertEquals(4, servicio.obtener("R-1").getMovimientos().length);
+
+        assertThrows(ExcepcionDominio.class, () -> servicio.deshacerUltima("R-1", AHORA),
+                "los reversos no se apilan");
+        assertThrows(ExcepcionDominio.class, () -> servicio.deshacerUltima("R-2", AHORA),
+                "cada folio tiene su propia pila");
+    }
+
+    @Test
+    void siElReversoFallaLaOperacionSigueDisponibleParaDeshacer() {
+        servicio.abrir(reserva("R-1"));
+        servicio.registrarCargo("R-1", new BigDecimal("1000"), "Estadía", AHORA);
+
+        assertThrows(IllegalArgumentException.class, () -> servicio.deshacerUltima("R-1", null));
+        assertEquals(1, servicio.obtener("R-1").getMovimientos().length);
+
+        MovimientoFolio reverso = servicio.deshacerUltima("R-1", AHORA);
+        assertEquals("R-1-M1", reverso.getCodigoMovimientoReversado());
     }
 
     private static Reserva reserva(String folio) {
