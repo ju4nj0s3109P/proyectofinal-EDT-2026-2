@@ -3,6 +3,8 @@ package co.edu.uq.sga.interfaz;
 import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
 import co.edu.uq.sga.servicios.ServicioMapa;
+import co.edu.uq.sga.persistencia.CargadorApartamentos;
+import co.edu.uq.sga.servicios.ServicioApartamentos;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -17,6 +19,7 @@ import java.util.Objects;
 public final class AplicacionSGA extends Application {
 
     private ServicioMapa servicio;
+    private ServicioApartamentos servicioApartamentos;
     private String errorCarga;
 
     @Override
@@ -61,9 +64,15 @@ public final class AplicacionSGA extends Application {
 
             servicio.consultarRecepcion();
 
+            Path archivoApartamentos = Path.of("data", "apartamentos.csv");
+
+            var catalogo = new CargadorApartamentos().cargar(archivoApartamentos);
+
+            servicioApartamentos = new ServicioApartamentos(catalogo);
+
         } catch (IOException | IllegalStateException e) {
-            errorCarga = "Archivo: " + archivo.toAbsolutePath()
-                    + "\n\n" + e.getMessage();
+            errorCarga = "No se pudieron cargar los datos iniciales.\\n\\n"
+                    + e.getMessage();
         }
     }
 
@@ -72,7 +81,7 @@ public final class AplicacionSGA extends Application {
         if (errorCarga != null) {
             Alert alerta = new Alert(Alert.AlertType.ERROR);
             alerta.setTitle("Error al iniciar el SGA");
-            alerta.setHeaderText("No se pudo cargar el mapa del edificio");
+            alerta.setHeaderText("No se pudo iniciar el alojamiento");
             alerta.setContentText(errorCarga);
             alerta.showAndWait();
 
@@ -80,7 +89,7 @@ public final class AplicacionSGA extends Application {
             return;
         }
 
-        VentanaPrincipal ventana = new VentanaPrincipal(servicio);
+        VentanaPrincipal ventana = new VentanaPrincipal(servicio, servicioApartamentos);
         Scene escena = new Scene(ventana, 1280, 800);
 
         String estilos = Objects.requireNonNull(

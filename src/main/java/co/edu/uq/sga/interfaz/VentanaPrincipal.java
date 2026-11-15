@@ -4,6 +4,7 @@ import co.edu.uq.sga.controladores.ControladorMapa;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioMapa.Recorrido;
 import co.edu.uq.sga.servicios.ServicioMapa.Ubicacion;
+import co.edu.uq.sga.servicios.ServicioApartamentos;
 
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.geometry.Pos;
@@ -43,7 +44,12 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     private final Node vistaMapa;
     private final Node vistaTabla;
 
-    public VentanaPrincipal(ServicioMapa servicio) {
+    private final PanelTablero vistaTablero;
+
+    private final ToggleButton botonTablero =
+            new ToggleButton("Inicio");
+
+    public VentanaPrincipal(ServicioMapa servicio, ServicioApartamentos servicioApartamentos) {
         this.controlador = new ControladorMapa(servicio, this);
 
         getStyleClass().add("ventana");
@@ -67,11 +73,12 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         );
 
         setLeft(crearBarraLateral());
+        vistaTablero = new PanelTablero(servicioApartamentos);
 
         vistaMapa = crearVistaMapa();
         vistaTabla = crearTabla(ubicaciones);
 
-        vistas.getChildren().addAll(vistaMapa, vistaTabla);
+        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla);
 
         VBox contenido = new VBox(24, crearEncabezado(), vistas);
         contenido.getStyleClass().add("contenido");
@@ -88,7 +95,7 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                 )
         );
 
-        mostrarVista(true);
+        mostrarTablero();
     }
 
     private VBox crearBarraLateral() {
@@ -97,23 +104,27 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         VBox identidad = new VBox(6, marca, lugar);
 
         ToggleGroup grupo = new ToggleGroup();
+
         botonMapa.setToggleGroup(grupo);
         botonUbicaciones.setToggleGroup(grupo);
 
         botonMapa.setId("nav-mapa");
         botonUbicaciones.setId("nav-ubicaciones");
+        botonTablero.setToggleGroup(grupo);
+        botonTablero.setId("nav-tablero");
 
         for (ToggleButton boton :
-                new ToggleButton[]{botonMapa, botonUbicaciones}) {
+                new ToggleButton[]{botonTablero, botonMapa, botonUbicaciones}) {
             boton.getStyleClass().add("navegacion");
             boton.setMaxWidth(Double.MAX_VALUE);
             boton.setAlignment(Pos.CENTER_LEFT);
         }
 
+        botonTablero.setOnAction(evento -> mostrarTablero());
         botonMapa.setOnAction(evento -> mostrarVista(true));
         botonUbicaciones.setOnAction(evento -> mostrarVista(false));
 
-        VBox menu = new VBox(8, botonMapa, botonUbicaciones);
+        VBox menu = new VBox(8,botonTablero, botonMapa, botonUbicaciones);
 
         Region espacio = new Region();
         VBox.setVgrow(espacio, Priority.ALWAYS);
@@ -347,6 +358,9 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarVista(boolean mostrarMapa) {
+        vistaTablero.setVisible(false);
+        vistaTablero.setManaged(false);
+        botonTablero.setSelected(false);
         vistaMapa.setVisible(mostrarMapa);
         vistaMapa.setManaged(mostrarMapa);
 
@@ -361,6 +375,25 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                         ? "Mapa del edificio"
                         : "Ubicaciones del edificio"
         );
+    }
+
+    private void mostrarTablero() {
+        vistaTablero.actualizar();
+
+        vistaTablero.setVisible(true);
+        vistaTablero.setManaged(true);
+
+        vistaMapa.setVisible(false);
+        vistaMapa.setManaged(false);
+
+        vistaTabla.setVisible(false);
+        vistaTabla.setManaged(false);
+
+        botonTablero.setSelected(true);
+        botonMapa.setSelected(false);
+        botonUbicaciones.setSelected(false);
+
+        titulo.setText("Estado de los apartamentos");
     }
 
     private static Label etiqueta(String texto, String estilo) {
