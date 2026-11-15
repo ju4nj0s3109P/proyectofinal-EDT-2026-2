@@ -1,0 +1,273 @@
+.root {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 14px;
+    -fx-text-base-color: #26382f;
+    -fx-accent: #bd623e;
+    -fx-focus-color: #bd623e;
+    -fx-faint-focus-color: rgba(189, 98, 62, 0.12);
+}
+
+.ventana {
+    -fx-background-color: #f5f7f3;
+}
+
+.contenido {
+    -fx-padding: 28;
+}
+
+.label {
+    -fx-text-fill: #26382f;
+}
+
+.titulo {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.subtitulo {
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+}
+
+.texto-suave {
+    -fx-text-fill: #6c7c72;
+    -fx-font-size: 13px;
+}
+
+.contexto {
+    -fx-text-fill: #6c7c72;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.nota {
+    -fx-text-fill: #6c7c72;
+    -fx-font-size: 11px;
+}
+
+.campo {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+/* Navegación lateral */
+
+.barra-lateral {
+    -fx-background-color: #1f352c;
+    -fx-padding: 32 18 26 18;
+}
+
+.marca {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.lateral-suave {
+    -fx-text-fill: #b7cbbd;
+    -fx-font-size: 12px;
+}
+
+.navegacion {
+    -fx-background-color: transparent;
+    -fx-text-fill: #bed0c2;
+    -fx-background-radius: 9;
+    -fx-padding: 14 12;
+    -fx-cursor: hand;
+}
+
+.navegacion:hover {
+    -fx-background-color: #314c3d;
+}
+
+.navegacion:selected {
+    -fx-background-color: #425848;
+    -fx-text-fill: white;
+}
+
+.navegacion:focused {
+    -fx-border-color: #b7cbbd;
+    -fx-border-radius: 9;
+}
+
+/* Detalle del recorrido */
+
+.detalle {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #e2e7de;
+    -fx-border-radius: 14;
+    -fx-padding: 24 20;
+}
+
+.distancia {
+    -fx-font-size: 40px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #bd623e;
+}
+
+.combo-box {
+    -fx-background-color: #f5f7f3;
+    -fx-background-radius: 8;
+    -fx-padding: 5;
+}
+
+.combo-box .list-cell {
+    -fx-font-size: 12px;
+}
+
+.combo-box:focused {
+    -fx-border-color: #bd623e;
+    -fx-border-radius: 8;
+}
+
+.recorrido-scroll,
+.recorrido-scroll > .viewport {
+    -fx-background-color: white;
+}
+
+.recorrido-scroll {
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.paso-ruta {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.flecha {
+    -fx-text-fill: #879b8c;
+}
+
+/* Mapa y ubicaciones */
+
+.mapa {
+    -fx-background-color: #fafbf8;
+}
+
+.mapa-scroll {
+    -fx-background-color: #fafbf8;
+    -fx-border-color: #dce3da;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 5;
+}
+
+.mapa-scroll > .viewport {
+    -fx-background-color: #fafbf8;
+}
+
+.nodo {
+    -fx-background-color: white;
+    -fx-border-color: #d1dbd4;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-text-fill: #26382f;
+    -fx-text-alignment: center;
+    -fx-font-size: 12px;
+    -fx-padding: 10;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(
+            gaussian, rgba(31, 53, 44, 0.08), 8, 0.1, 0, 3
+    );
+}
+
+.nodo:hover {
+    -fx-border-color: #9caf9f;
+    -fx-background-color: #f4f8f2;
+}
+
+.nodo:en-ruta {
+    -fx-background-color: #fff2e8;
+}
+
+.nodo:destino,
+.nodo:focused {
+    -fx-border-color: #bd623e;
+    -fx-border-width: 2;
+}
+
+.pasillo {
+    -fx-stroke: #c3ccc6;
+    -fx-stroke-width: 2;
+}
+
+.pasillo:en-ruta {
+    -fx-stroke: #bd623e;
+    -fx-stroke-width: 4;
+}
+
+.peso-pasillo {
+    -fx-background-color: #fafbf8;
+    -fx-background-radius: 8;
+    -fx-padding: 4 8;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #617568;
+}
+
+.peso-pasillo:en-ruta {
+    -fx-text-fill: #bd623e;
+}
+
+/* Tabla de ubicaciones */
+
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #dce3da;
+    -fx-padding: 0;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #edf1e9;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 44;
+}
+
+.table-view .column-header .label {
+    -fx-alignment: center-left;
+    -fx-padding: 0 12;
+}
+
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #f0f3ed transparent;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #faebde;
+}
+
+.table-cell {
+    -fx-text-fill: #26382f;
+    -fx-alignment: center-left;
+    -fx-padding: 0 14;
+    -fx-border-color: transparent;
+}
+
+.accion-principal {
+    -fx-background-color: #bd623e;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 12 20;
+    -fx-cursor: hand;
+}
+
+.accion-principal:hover {
+    -fx-background-color: #a64f2f;
+}
+
+.accion-principal:focused {
+    -fx-border-color: #703b28;
+    -fx-border-radius: 8;
+}
+
+.accion-principal:disabled {
+    -fx-opacity: 0.45;
+}

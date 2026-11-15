@@ -1,11 +1,12 @@
 package co.edu.uq.sga;
 
-/** Punto de entrada pendiente de conectar con la interfaz. */
+import co.edu.uq.sga.interfaz.AplicacionSGA;
+import javafx.application.Application;
+
 public final class Main {
     private Main() {}
 
     public static void main(String[] args) {
-        // TODO: inicializar escenario, servicios y ventana principal.
-        System.out.println("SGA: estructura inicial");
+        Application.launch(AplicacionSGA.class, args);
     }
 }

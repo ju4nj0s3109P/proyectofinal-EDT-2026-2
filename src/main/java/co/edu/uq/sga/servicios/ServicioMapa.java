@@ -1,0 +1,48 @@
+package co.edu.uq.sga.servicios;
+
+import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
+import java.util.Objects;
+
+/** Consultas del mapa para la interfaz; las rutas las resuelve el adaptador existente. */
+public final class ServicioMapa {
+    public record Ubicacion(String id, String tipo, String nombre) {
+        @Override public String toString() { return nombre + " · " + id; }
+    }
+
+    public record Pasillo(String origen, String destino, double metros) {}
+
+    public record Recorrido(String[] ubicaciones, double metros) {
+        public Recorrido { ubicaciones = ubicaciones.clone(); }
+        @Override public String[] ubicaciones() { return ubicaciones.clone(); }
+        public boolean existe() { return ubicaciones.length > 0; }
+    }
+
+    private final Ubicacion[] ubicaciones;
+    private final Pasillo[] pasillos;
+    private final CalculadorRutasGrafo calculador;
+
+    public ServicioMapa(Ubicacion[] ubicaciones, Pasillo[] pasillos,
+                        CalculadorRutasGrafo calculador) {
+        this.ubicaciones = Objects.requireNonNull(ubicaciones).clone();
+        this.pasillos = Objects.requireNonNull(pasillos).clone();
+        this.calculador = Objects.requireNonNull(calculador);
+    }
+
+    public Ubicacion[] consultarUbicaciones() { return ubicaciones.clone(); }
+    public Pasillo[] consultarPasillos() { return pasillos.clone(); }
+
+    public String consultarRecepcion() {
+        for (Ubicacion ubicacion : ubicaciones) {
+            if ("RECEPCION".equals(ubicacion.tipo())) {
+                return ubicacion.id();
+            }
+        }
+        throw new IllegalStateException("El mapa necesita una ubicación de tipo RECEPCION.");
+    }
+
+    public Recorrido calcularDesdeRecepcion(String destino) {
+        String origen = consultarRecepcion();
+        String[] ruta = calculador.calcularRuta(origen, destino);
+        return new Recorrido(ruta, calculador.costoRuta(origen, destino));
+    }
+}
