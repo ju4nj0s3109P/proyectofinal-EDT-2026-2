@@ -72,10 +72,8 @@ public class ServicioFolios {
                 ? TipoMovimiento.REVERSO_CARGO
                 : TipoMovimiento.REVERSO_PAGO;
         try {
-            MovimientoFolio reverso = new MovimientoFolio(siguienteCodigo(folio), contrario,
-                    ultima.getMonto(), "Deshace " + ultima.getCodigo(), fechaHora, ultima.getCodigo());
-            folio.registrarMovimiento(reverso);
-            return reverso;
+            return agregar(folio, contrario, ultima.getMonto(),
+                    "Deshace " + ultima.getCodigo(), fechaHora, ultima.getCodigo());
         } catch (RuntimeException e) {
             // Si el reverso no se pudo registrar, la operación debe seguir disponible para deshacer.
             deshacer.apilar(folio.getCodigo(), ultima);
@@ -83,13 +81,46 @@ public class ServicioFolios {
         }
     }
 
+    /**
+     * Registra dinero devuelto al huésped. No puede superar su saldo a favor y,
+     * como no es un cargo ni un pago, no entra en la pila de deshacer.
+     */
+    public MovimientoFolio registrarDevolucion(
+            String codigoFolio, BigDecimal monto, String descripcion, LocalDateTime fechaHora) {
+        Folio folio = obtener(codigoFolio);
+        BigDecimal saldoAFavor = folio.calcularSaldo().negate();
+        if (monto != null && monto.compareTo(saldoAFavor) > 0) {
+            throw new ExcepcionDominio("La devolución supera el saldo a favor del huésped.");
+        }
+        return agregar(folio, TipoMovimiento.DEVOLUCION, monto, descripcion, fechaHora, null);
+    }
+
+    /** Dinero recibido del huésped: pagos menos pagos reversados y devoluciones. */
+    public BigDecimal totalPagado(String codigoFolio) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (MovimientoFolio movimiento : obtener(codigoFolio).getMovimientos()) {
+            switch (movimiento.getTipo()) {
+                case PAGO -> total = total.add(movimiento.getMonto());
+                case REVERSO_PAGO, DEVOLUCION -> total = total.subtract(movimiento.getMonto());
+                default -> { }
+            }
+        }
+        return total;
+    }
+
     private MovimientoFolio registrar(String codigoFolio, TipoMovimiento tipo, BigDecimal monto,
             String descripcion, LocalDateTime fechaHora) {
         Folio folio = obtener(codigoFolio);
-        MovimientoFolio movimiento = new MovimientoFolio(
-                siguienteCodigo(folio), tipo, monto, descripcion, fechaHora, null);
-        folio.registrarMovimiento(movimiento);
+        MovimientoFolio movimiento = agregar(folio, tipo, monto, descripcion, fechaHora, null);
         deshacer.apilar(folio.getCodigo(), movimiento);
+        return movimiento;
+    }
+
+    private static MovimientoFolio agregar(Folio folio, TipoMovimiento tipo, BigDecimal monto,
+            String descripcion, LocalDateTime fechaHora, String codigoReversado) {
+        MovimientoFolio movimiento = new MovimientoFolio(
+                siguienteCodigo(folio), tipo, monto, descripcion, fechaHora, codigoReversado);
+        folio.registrarMovimiento(movimiento);
         return movimiento;
     }
 

@@ -68,3 +68,5 @@ La interfaz `co.edu.uq.sga.dominio.contratos.IndiceReservas` es el límite entre
 - `registrarCargo` y `registrarPago` crean el movimiento con código `<folio>-M<n>` y con la fecha/hora que indica quien llama. Los movimientos nunca se borran ni se modifican.
 - `PilaDeshacerFolios` es el puerto hacia la pila propia; `PilaDeshacerFoliosArbol` guarda una `Pila` por folio. Cada cargo o pago se apila; los reversos no.
 - `deshacerUltima(codigo, fechaHora)` desapila la última operación y registra su contrario (`REVERSO_CARGO` o `REVERSO_PAGO`) por el mismo monto. Sin operaciones lanza `ExcepcionDominio`; si el reverso falla, la operación vuelve a la pila.
+- `registrarDevolucion` registra un movimiento `DEVOLUCION` solo hasta el saldo a favor del huésped; si lo supera lanza `ExcepcionDominio`. Las devoluciones no entran en la pila de deshacer.
+- `totalPagado(codigo)` es el dinero recibido del huésped: pagos menos reversos de pago y devoluciones. Los cargos no cuentan. Es la base para medir el anticipo del 30 %.

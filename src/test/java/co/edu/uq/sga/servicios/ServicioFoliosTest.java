@@ -129,6 +129,37 @@ class ServicioFoliosTest {
         assertEquals("R-1-M1", reverso.getCodigoMovimientoReversado());
     }
 
+    @Test
+    void totalPagadoRestaPagosReversadosYDevolucionesYNoCuentaCargos() {
+        servicio.abrir(reserva("R-1"));
+        servicio.registrarCargo("R-1", new BigDecimal("1000"), "Estadía", AHORA);
+        servicio.registrarPago("R-1", new BigDecimal("1200"), "Pago", AHORA);
+        servicio.registrarPago("R-1", new BigDecimal("50"), "Pago duplicado", AHORA);
+        servicio.deshacerUltima("R-1", AHORA);
+        servicio.registrarDevolucion("R-1", new BigDecimal("200"), "Devuelve excedente", AHORA);
+
+        assertEquals(new BigDecimal("1000"), servicio.totalPagado("R-1"));
+        assertEquals(0, servicio.obtener("R-1").calcularSaldo().signum());
+        assertEquals(5, servicio.obtener("R-1").getMovimientos().length);
+    }
+
+    @Test
+    void noDevuelveMasQueElSaldoAFavorNiApilaLaDevolucion() {
+        servicio.abrir(reserva("R-1"));
+        servicio.registrarPago("R-1", new BigDecimal("300"), "Anticipo", AHORA);
+
+        assertThrows(ExcepcionDominio.class, () -> servicio.registrarDevolucion(
+                "R-1", new BigDecimal("301"), "Devolución", AHORA));
+        assertEquals(1, servicio.obtener("R-1").getMovimientos().length);
+
+        MovimientoFolio devolucion = servicio.registrarDevolucion(
+                "R-1", new BigDecimal("300"), "Devolución", AHORA);
+        assertEquals(TipoMovimiento.DEVOLUCION, devolucion.getTipo());
+        assertEquals(0, servicio.totalPagado("R-1").signum());
+        assertThrows(ExcepcionDominio.class, () -> servicio.registrarDevolucion(
+                "R-1", BigDecimal.ONE, "Sin saldo a favor", AHORA));
+    }
+
     private static Reserva reserva(String folio) {
         Huesped titular = new Huesped("Titular", "1094000000", LocalDate.of(1990, 1, 1),
                 "3001234567", "titular@example.com", null);
