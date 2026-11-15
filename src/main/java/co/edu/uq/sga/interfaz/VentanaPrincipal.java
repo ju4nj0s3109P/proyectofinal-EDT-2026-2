@@ -1,306 +1,373 @@
 package co.edu.uq.sga.interfaz;
 
+import co.edu.uq.sga.controladores.ControladorMapa;
 import co.edu.uq.sga.servicios.ServicioMapa;
+import co.edu.uq.sga.servicios.ServicioMapa.Recorrido;
 import co.edu.uq.sga.servicios.ServicioMapa.Ubicacion;
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
-public class VentanaPrincipal extends JFrame {
+import java.text.DecimalFormat;
 
-    private static final Color FONDO = new Color(245, 247, 243);
-    private static final Color TEXTO = new Color(38, 56, 47);
-    private static final Color SUAVE = new Color(108, 124, 114);
-    private static final Color ACENTO = new Color(193, 93, 49);
+public class VentanaPrincipal extends BorderPane implements ControladorMapa.VistaMapa {
 
-    private final ServicioMapa servicio;
+    private final ControladorMapa controlador;
 
-    private final CardLayout tarjetas = new CardLayout();
-    private final JPanel vistas = new JPanel(tarjetas);
+    private final Label titulo =
+            etiqueta("Mapa del edificio", "titulo");
 
-    private final JLabel titulo =
-            etiqueta("Mapa del edificio", 27, TEXTO, true);
+    private final Label distancia =
+            etiqueta("—", "distancia");
 
-    private final JLabel distancia =
-            etiqueta("—", 40, ACENTO, true);
+    private final Label resultado =
+            etiqueta("Selecciona un destino", "texto-suave");
 
-    private final JLabel resultado =
-            etiqueta("Selecciona un destino", 13, SUAVE, false);
+    private final VBox recorrido = new VBox(10);
 
-    private final JTextArea recorrido =
-            new JTextArea("Pulsa una ubicación del mapa o elige un destino.");
+    private final ComboBox<Ubicacion> destinos = new ComboBox<>();
 
-    private final JComboBox<Ubicacion> destinos;
+    private final ToggleButton botonMapa =
+            new ToggleButton("Mapa del edificio");
+
+    private final ToggleButton botonUbicaciones =
+            new ToggleButton("Ubicaciones");
+
     private final PanelMapa mapa;
 
-    private final JToggleButton botonMapa =
-            new BotonNavegacion("Mapa del edificio");
+    private final StackPane vistas = new StackPane();
 
-    private final JToggleButton botonUbicaciones =
-            new BotonNavegacion("Ubicaciones");
+    private final Node vistaMapa;
+    private final Node vistaTabla;
 
     public VentanaPrincipal(ServicioMapa servicio) {
-        super("SGA | Aparta-Suites UQ");
+        this.controlador = new ControladorMapa(servicio, this);
 
-        this.servicio = servicio;
+        getStyleClass().add("ventana");
 
-        Ubicacion[] ubicaciones = servicio.consultarUbicaciones();
+        Ubicacion[] ubicaciones = controlador.consultarUbicaciones();
 
-        destinos = new JComboBox<>(ubicaciones);
-        destinos.setSelectedIndex(-1);
+        destinos.getItems().addAll(ubicaciones);
+        destinos.setPromptText("Elegir ubicación");
+        destinos.setId("destino");
+        destinos.setAccessibleText("Destino de la ruta desde recepción");
+        destinos.setMaxWidth(Double.MAX_VALUE);
+
+        distancia.setId("distancia");
+        resultado.setWrapText(true);
+        recorrido.setId("recorrido");
 
         mapa = new PanelMapa(
                 ubicaciones,
-                servicio.consultarPasillos(),
+                controlador.consultarPasillos(),
                 this::seleccionarDestino
         );
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(1000, 660));
-        setSize(1320, 820);
+        setLeft(crearBarraLateral());
 
-        JPanel raiz = new JPanel(new BorderLayout());
-        raiz.setBackground(FONDO);
-        raiz.add(crearBarraLateral(), BorderLayout.WEST);
+        vistaMapa = crearVistaMapa();
+        vistaTabla = crearTabla(ubicaciones);
 
-        JPanel contenido = new JPanel(new BorderLayout(0, 22));
-        contenido.setOpaque(false);
-        contenido.setBorder(
-                BorderFactory.createEmptyBorder(28, 28, 24, 28)
+        vistas.getChildren().addAll(vistaMapa, vistaTabla);
+
+        VBox contenido = new VBox(24, crearEncabezado(), vistas);
+        contenido.getStyleClass().add("contenido");
+
+        VBox.setVgrow(vistas, Priority.ALWAYS);
+        setCenter(contenido);
+
+        destinos.setOnAction(evento -> actualizarRuta());
+
+        recorrido.getChildren().add(
+                etiqueta(
+                        "Pulsa una ubicación del mapa o elige un destino.",
+                        "texto-suave"
+                )
         );
-        contenido.add(crearEncabezado(), BorderLayout.NORTH);
 
-        vistas.setOpaque(false);
-        vistas.add(crearVistaMapa(), "mapa");
-        vistas.add(crearTabla(ubicaciones), "ubicaciones");
-
-        contenido.add(vistas, BorderLayout.CENTER);
-        raiz.add(contenido, BorderLayout.CENTER);
-
-        setContentPane(raiz);
-
-        botonMapa.setSelected(true);
-        actualizarNavegacion();
-
-        destinos.addActionListener(evento -> actualizarRuta());
-
-        setLocationRelativeTo(null);
+        mostrarVista(true);
     }
-    private JPanel crearBarraLateral() {
-        JPanel lateral = new JPanel(new BorderLayout(0, 38));
-        lateral.setBackground(new Color(31, 53, 44));
-        lateral.setPreferredSize(new Dimension(210, 0));
-        lateral.setBorder(BorderFactory.createEmptyBorder(32, 18, 26, 18));
-        JPanel marca = new JPanel(new GridLayout(0, 1, 0, 6));
-        marca.setOpaque(false);
-        marca.add(etiqueta("APARTA-SUITES", 16, Color.WHITE, true));
-        marca.add(etiqueta("UQ · Salento", 13, new Color(183, 203, 189), false));
-        lateral.add(marca, BorderLayout.NORTH);
-        JPanel menu = new JPanel();
-        menu.setOpaque(false);
-        menu.setLayout(new BoxLayout(menu, BoxLayout.Y_AXIS));
-        ButtonGroup grupo = new ButtonGroup();
-        for (JToggleButton boton : new JToggleButton[]{botonMapa, botonUbicaciones}) {
-            grupo.add(boton);
-            boton.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            boton.setHorizontalAlignment(SwingConstants.LEFT);
-            boton.setMaximumSize(new Dimension(180, 46));
-            boton.setBorder(BorderFactory.createEmptyBorder(13, 14, 13, 8));
-            boton.setFocusPainted(true);
-            boton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            menu.add(boton);
-            menu.add(Box.createVerticalStrut(10));
+
+    private VBox crearBarraLateral() {
+        Label marca = etiqueta("APARTA-SUITES", "marca");
+        Label lugar = etiqueta("Universidad del Quindío", "lateral-suave");
+        VBox identidad = new VBox(6, marca, lugar);
+
+        ToggleGroup grupo = new ToggleGroup();
+        botonMapa.setToggleGroup(grupo);
+        botonUbicaciones.setToggleGroup(grupo);
+
+        botonMapa.setId("nav-mapa");
+        botonUbicaciones.setId("nav-ubicaciones");
+
+        for (ToggleButton boton :
+                new ToggleButton[]{botonMapa, botonUbicaciones}) {
+            boton.getStyleClass().add("navegacion");
+            boton.setMaxWidth(Double.MAX_VALUE);
+            boton.setAlignment(Pos.CENTER_LEFT);
         }
-        botonMapa.addActionListener(evento -> mostrarVista("mapa"));
-        botonUbicaciones.addActionListener(evento -> mostrarVista("ubicaciones"));
-        lateral.add(menu, BorderLayout.CENTER);
-        lateral.add(etiqueta("Gestión de alojamiento", 12,
-                new Color(183, 203, 189), false), BorderLayout.SOUTH);
+
+        botonMapa.setOnAction(evento -> mostrarVista(true));
+        botonUbicaciones.setOnAction(evento -> mostrarVista(false));
+
+        VBox menu = new VBox(8, botonMapa, botonUbicaciones);
+
+        Region espacio = new Region();
+        VBox.setVgrow(espacio, Priority.ALWAYS);
+
+        VBox lateral = new VBox(
+                36,
+                identidad,
+                menu,
+                espacio,
+                etiqueta("Gestión de alojamiento", "lateral-suave")
+        );
+
+        lateral.getStyleClass().add("barra-lateral");
+        lateral.setPrefWidth(210);
+        lateral.setMinWidth(210);
+
         return lateral;
     }
 
-    private JPanel crearEncabezado() {
-        JPanel panel = new JPanel(new BorderLayout(0, 12));
-        panel.setOpaque(false);
-        panel.add(etiqueta("APARTA-SUITES UQ / EDIFICIO", 11, SUAVE, true), BorderLayout.NORTH);
-        panel.add(titulo, BorderLayout.CENTER);
-        String resumen = servicio.consultarUbicaciones().length + " ubicaciones   ·   "
-                + servicio.consultarPasillos().length + " pasillos";
-        panel.add(etiqueta(resumen, 13, SUAVE, false), BorderLayout.SOUTH);
+    private VBox crearEncabezado() {
+        String resumen =
+                controlador.consultarUbicaciones().length + " ubicaciones · "
+                        + controlador.consultarPasillos().length + " pasillos";
+
+        return new VBox(
+                9,
+                etiqueta("APARTA-SUITES UQ / EDIFICIO", "contexto"),
+                titulo,
+                etiqueta(resumen, "texto-suave")
+        );
+    }
+
+    private HBox crearVistaMapa() {
+        ScrollPane scroll = new ScrollPane(mapa);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(true);
+        scroll.setPannable(true);
+        scroll.getStyleClass().add("mapa-scroll");
+
+        VBox zonaMapa = new VBox(
+                12,
+                scroll,
+                etiqueta(
+                        "Esquema de conexiones · Distancias en metros",
+                        "nota"
+                )
+        );
+
+        zonaMapa.setMinWidth(200);
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+        HBox.setHgrow(zonaMapa, Priority.ALWAYS);
+
+        return new HBox(20, zonaMapa, crearDetalle());
+    }
+
+    private VBox crearDetalle() {
+        Label origen = etiqueta(
+                "Desde " + controlador.consultarRecepcion(),
+                "texto-suave"
+        );
+
+        VBox seleccion = new VBox(
+                8,
+                etiqueta("Destino", "campo"),
+                destinos
+        );
+
+        VBox total = new VBox(4, distancia, resultado);
+
+        ScrollPane pasos = new ScrollPane(recorrido);
+        pasos.setFitToWidth(true);
+        pasos.getStyleClass().add("recorrido-scroll");
+        VBox.setVgrow(pasos, Priority.ALWAYS);
+
+        VBox panel = new VBox(
+                22,
+                new VBox(8, etiqueta("Tu recorrido", "subtitulo"), origen),
+                seleccion,
+                total,
+                pasos,
+                etiqueta("Distancia desde recepción", "nota")
+        );
+
+        panel.setMinWidth(260);
+        panel.setPrefWidth(260);
+        panel.setMaxWidth(260);
+        panel.getStyleClass().add("detalle");
+
         return panel;
     }
 
-    private JPanel crearVistaMapa() {
-        JPanel panel = new JPanel(new BorderLayout(18, 0));
-        panel.setOpaque(false);
-        JPanel zonaMapa = new JPanel(new BorderLayout(0, 12));
-        zonaMapa.setOpaque(false);
-        JScrollPane scroll = new JScrollPane(mapa);
-        scroll.setBorder(BorderFactory.createLineBorder(new Color(220, 227, 218)));
-        zonaMapa.add(scroll, BorderLayout.CENTER);
-        zonaMapa.add(etiqueta("Esquema de conexiones · Distancias en metros", 12, SUAVE, false),
-                BorderLayout.SOUTH);
-        panel.add(zonaMapa, BorderLayout.CENTER);
-        panel.add(crearDetalle(), BorderLayout.EAST);
-        return panel;
-    }
+    private VBox crearTabla(Ubicacion[] ubicaciones) {
+        TableView<Ubicacion> tabla = new TableView<>();
+        tabla.setId("tabla-ubicaciones");
+        tabla.getItems().addAll(ubicaciones);
 
-    private JPanel crearDetalle() {
-        JPanel panel = new JPanel(new BorderLayout(0, 20));
-        panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(258, 0));
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 231, 222)),
-                BorderFactory.createEmptyBorder(24, 20, 24, 20)));
-        JPanel superior = new JPanel();
-        superior.setOpaque(false);
-        superior.setLayout(new BoxLayout(superior, BoxLayout.Y_AXIS));
-        superior.add(etiqueta("Tu recorrido", 20, TEXTO, true));
-        superior.add(Box.createVerticalStrut(12));
-        superior.add(etiqueta("Desde " + servicio.consultarRecepcion(), 13, SUAVE, false));
-        superior.add(Box.createVerticalStrut(24));
-        superior.add(etiqueta("Destino", 12, TEXTO, true));
-        superior.add(Box.createVerticalStrut(8));
-        destinos.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        destinos.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-        destinos.setAlignmentX(Component.LEFT_ALIGNMENT);
-        destinos.getAccessibleContext().setAccessibleName("Destino de la ruta");
-        superior.add(destinos);
-        superior.add(Box.createVerticalStrut(25));
-        distancia.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
-        superior.add(distancia);
-        superior.add(Box.createVerticalStrut(8));
-        resultado.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
-        superior.add(resultado);
-        panel.add(superior, BorderLayout.NORTH);
-        recorrido.setEditable(false);
-        recorrido.setLineWrap(true);
-        recorrido.setWrapStyleWord(true);
-        recorrido.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        recorrido.setForeground(TEXTO);
-        recorrido.setBackground(Color.WHITE);
-        recorrido.setMargin(new Insets(8, 0, 0, 0));
-        JScrollPane texto = new JScrollPane(recorrido);
-        texto.setBorder(BorderFactory.createEmptyBorder());
-        panel.add(texto, BorderLayout.CENTER);
-        panel.add(etiqueta("Ruta calculada con Dijkstra", 11, SUAVE, false), BorderLayout.SOUTH);
-        return panel;
-    }
+        tabla.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY
+        );
 
-    private JPanel crearTabla(Ubicacion[] ubicaciones) {
-        DefaultTableModel modelo = new DefaultTableModel(new String[]{"Código", "Nombre", "Tipo"}, 0) {
-            @Override public boolean isCellEditable(int fila, int columna) { return false; }
-        };
-        for (Ubicacion ubicacion : ubicaciones) {
-            modelo.addRow(new Object[]{ubicacion.id(), ubicacion.nombre(),
-                    ubicacion.tipo().replace('_', ' ')});
-        }
-        JTable tabla = new JTable(modelo);
-        tabla.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        tabla.setForeground(TEXTO);
-        tabla.setRowHeight(48);
-        tabla.setShowGrid(false);
-        tabla.setIntercellSpacing(new Dimension(0, 0));
-        tabla.setSelectionBackground(new Color(249, 235, 222));
-        tabla.setSelectionForeground(TEXTO);
-        tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        tabla.setFillsViewportHeight(true);
-        tabla.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        tabla.getTableHeader().setPreferredSize(new Dimension(0, 42));
-        tabla.getTableHeader().setReorderingAllowed(false);
-        JButton verRuta = new JButton("Ver ruta en el mapa");
-        verRuta.setFont(new Font("SansSerif", Font.BOLD, 13));
-        verRuta.setEnabled(false);
-        tabla.getSelectionModel().addListSelectionListener(evento ->
-                verRuta.setEnabled(tabla.getSelectedRow() >= 0));
-        verRuta.addActionListener(evento -> {
-            int fila = tabla.getSelectedRow();
-            if (fila >= 0) {
-                seleccionarDestino(ubicaciones[fila].id());
-                mostrarVista("mapa");
+        tabla.setFixedCellSize(48);
+        tabla.setPlaceholder(
+                etiqueta("No hay ubicaciones cargadas.", "texto-suave")
+        );
+
+        TableColumn<Ubicacion, String> codigo =
+                new TableColumn<>("Código");
+
+        codigo.setCellValueFactory(celda ->
+                new ReadOnlyStringWrapper(celda.getValue().id())
+        );
+
+        TableColumn<Ubicacion, String> nombre =
+                new TableColumn<>("Nombre");
+
+        nombre.setCellValueFactory(celda ->
+                new ReadOnlyStringWrapper(celda.getValue().nombre())
+        );
+
+        TableColumn<Ubicacion, String> tipo =
+                new TableColumn<>("Tipo");
+
+        tipo.setCellValueFactory(celda ->
+                new ReadOnlyStringWrapper(
+                        celda.getValue().tipo().replace('_', ' ')
+                )
+        );
+
+        codigo.setMinWidth(110);
+        codigo.setPrefWidth(130);
+        codigo.setMaxWidth(150);
+
+        nombre.setMinWidth(180);
+        nombre.setPrefWidth(360);
+
+        tipo.setMinWidth(180);
+        tipo.setPrefWidth(300);
+
+        tabla.getColumns().add(codigo);
+        tabla.getColumns().add(nombre);
+        tabla.getColumns().add(tipo);
+
+        Button verRuta = new Button("Ver ruta en el mapa");
+        verRuta.setId("ver-ruta");
+        verRuta.getStyleClass().add("accion-principal");
+
+        verRuta.disableProperty().bind(
+                tabla.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        verRuta.setOnAction(evento -> {
+            Ubicacion seleccionada =
+                    tabla.getSelectionModel().getSelectedItem();
+
+            if (seleccionada != null) {
+                seleccionarDestino(seleccionada.id());
+                mostrarVista(true);
             }
         });
-        JPanel panel = new JPanel(new BorderLayout(0, 18));
-        panel.setOpaque(false);
-        panel.add(new JScrollPane(tabla), BorderLayout.CENTER);
-        JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        acciones.setOpaque(false);
-        acciones.add(verRuta);
-        panel.add(acciones, BorderLayout.SOUTH);
+
+        HBox acciones = new HBox(verRuta);
+        acciones.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox panel = new VBox(16, tabla, acciones);
+        VBox.setVgrow(tabla, Priority.ALWAYS);
+
         return panel;
     }
 
     private void seleccionarDestino(String codigo) {
-        for (int i = 0; i < destinos.getItemCount(); i++) {
-            if (destinos.getItemAt(i).id().equals(codigo)) {
-                destinos.setSelectedIndex(i);
+        for (Ubicacion ubicacion : destinos.getItems()) {
+            if (ubicacion.id().equals(codigo)) {
+                if (ubicacion.equals(destinos.getValue())) {
+                    actualizarRuta();
+                } else {
+                    destinos.getSelectionModel().select(ubicacion);
+                }
+
                 return;
             }
         }
     }
 
     private void actualizarRuta() {
-        Ubicacion destino = (Ubicacion) destinos.getSelectedItem();
-        if (destino == null) return;
-        var ruta = servicio.calcularDesdeRecepcion(destino.id());
-        mapa.mostrarRuta(destino.id(), ruta.ubicaciones());
+        Ubicacion destino = destinos.getValue();
+
+        if (destino == null) {
+            return;
+        }
+
+        controlador.seleccionarDestino(destino.id());
+    }
+
+    @Override
+    public void mostrarRecorrido(String codigoDestino, Recorrido ruta) {
+        String[] pasos = ruta.ubicaciones();
+
+        mapa.mostrarRuta(codigoDestino, pasos);
+        recorrido.getChildren().clear();
+
         if (!ruta.existe()) {
             distancia.setText("—");
             resultado.setText("Sin conexión disponible");
-            recorrido.setText("No hay una ruta desde recepción hasta " + destino.nombre() + ".");
+
+            recorrido.getChildren().add(
+                    etiqueta(
+                            "No hay una ruta desde recepción hasta "
+                                    + codigoDestino + ".",
+                            "texto-suave"
+                    )
+            );
+
             return;
         }
-        distancia.setText(new java.text.DecimalFormat("0.##").format(ruta.metros()) + " m");
+
+        distancia.setText(
+                new DecimalFormat("0.##").format(ruta.metros()) + " m"
+        );
+
         resultado.setText("Distancia total");
-        recorrido.setText(String.join("\n↓\n", ruta.ubicaciones()));
-        recorrido.setCaretPosition(0);
-    }
 
-    private void mostrarVista(String vista) {
-        tarjetas.show(vistas, vista);
-        boolean mostrandoMapa = "mapa".equals(vista);
-        botonMapa.setSelected(mostrandoMapa);
-        botonUbicaciones.setSelected(!mostrandoMapa);
-        titulo.setText(mostrandoMapa ? "Mapa del edificio" : "Ubicaciones del edificio");
-        actualizarNavegacion();
-    }
-
-    private void actualizarNavegacion() {
-        for (JToggleButton boton : new JToggleButton[]{botonMapa, botonUbicaciones}) {
-            boton.setBackground(boton.isSelected() ? new Color(66, 88, 72) : new Color(31, 53, 44));
-            boton.setForeground(boton.isSelected() ? Color.WHITE : new Color(190, 207, 194));
-        }
-    }
-
-    private static final class BotonNavegacion extends JToggleButton {
-        BotonNavegacion(String texto) {
-            super(texto);
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setOpaque(false);
-        }
-
-        @Override protected void paintComponent(Graphics graphics) {
-            Graphics2D g = (Graphics2D) graphics.create();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(getBackground());
-            g.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-            if (hasFocus()) {
-                g.setColor(new Color(183, 203, 189));
-                g.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 12, 12);
+        for (int i = 0; i < pasos.length; i++) {
+            if (i > 0) {
+                recorrido.getChildren().add(etiqueta("↓", "flecha"));
             }
-            g.dispose();
-            super.paintComponent(graphics);
+
+            recorrido.getChildren().add(
+                    etiqueta(pasos[i], "paso-ruta")
+            );
         }
     }
 
-    private static JLabel etiqueta(String texto, int tamano, Color color, boolean negrita) {
-        JLabel label = new JLabel(texto);
-        label.setFont(new Font("SansSerif", negrita ? Font.BOLD : Font.PLAIN, tamano));
-        label.setForeground(color);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return label;
+    private void mostrarVista(boolean mostrarMapa) {
+        vistaMapa.setVisible(mostrarMapa);
+        vistaMapa.setManaged(mostrarMapa);
+
+        vistaTabla.setVisible(!mostrarMapa);
+        vistaTabla.setManaged(!mostrarMapa);
+
+        botonMapa.setSelected(mostrarMapa);
+        botonUbicaciones.setSelected(!mostrarMapa);
+
+        titulo.setText(
+                mostrarMapa
+                        ? "Mapa del edificio"
+                        : "Ubicaciones del edificio"
+        );
     }
 
+    private static Label etiqueta(String texto, String estilo) {
+        Label etiqueta = new Label(texto);
+        etiqueta.getStyleClass().add(estilo);
+        etiqueta.setWrapText(true);
+
+        return etiqueta;
+    }
 }
