@@ -638,4 +638,8 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
         titulo.setText("Reservas del alojamiento");
     }
+
+    public void actualizarReservas() {
+        vistaReservas.actualizar();
+    }
 }

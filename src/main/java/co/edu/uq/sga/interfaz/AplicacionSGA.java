@@ -13,6 +13,7 @@ import co.edu.uq.sga.persistencia.CargadorApartamentos;
 import co.edu.uq.sga.persistencia.CargadorPreparaciones;
 import co.edu.uq.sga.persistencia.CargadorHuespedes;
 import co.edu.uq.sga.persistencia.CargadorTemporadas;
+import co.edu.uq.sga.persistencia.CargadorReservas;
 import co.edu.uq.sga.servicios.ServicioTarifas;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
@@ -21,6 +22,10 @@ import co.edu.uq.sga.servicios.ServicioReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioFolios;
 import co.edu.uq.sga.servicios.ServicioDisponibilidad;
+import co.edu.uq.sga.adaptadores.ColaReservasPendientesPorVencimiento;
+import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
+import co.edu.uq.sga.servicios.ServicioReservasPortal;
+
 
 import java.time.LocalDate;
 
@@ -29,6 +34,9 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -43,6 +51,7 @@ public final class AplicacionSGA extends Application {
     private CatalogoHuespedesArbol catalogoHuespedes;
     private ServicioPanelReservas servicioPanelReservas;
     private ServicioTarifas servicioTarifas;
+    private Timeline relojVencimientos;
 
 
     @Override
@@ -122,6 +131,45 @@ public final class AplicacionSGA extends Application {
                     new PilaDeshacerFoliosArbol()
             );
 
+            var reservasIniciales = new CargadorReservas().cargar(
+                    Path.of("data", "reservas.csv"),
+                    catalogo,
+                    catalogoHuespedes
+            );
+
+            for (var cargada : reservasIniciales) {
+                try {
+                    catalogoReservas.registrarDirectaCargada(
+                            cargada.reserva(),
+                            cargada.llegadaEstimada(),
+                            indiceReservas
+                    );
+
+                    servicioFolios.abrir(cargada.reserva());
+                } catch (IllegalArgumentException | IllegalStateException e) {
+                    throw new IOException(
+                            "No se pudo incorporar la reserva "
+                                    + cargada.reserva().getFolio()
+                                    + ": " + e.getMessage(),
+                            e
+                    );
+                }
+            }
+
+            var colaVencimientos = new ColaReservasPendientesPorVencimiento(
+                    ServicioVencimientoReservas.comparadorPorVencimiento()
+            );
+
+            var servicioVencimientos = new ServicioVencimientoReservas(
+                    servicioReservas,
+                    colaVencimientos
+            );
+
+            var servicioPortal = new ServicioReservasPortal(
+                    servicioReservas,
+                    servicioVencimientos
+            );
+
             servicioPanelReservas = new ServicioPanelReservas(
                     catalogo,
                     catalogoHuespedes,
@@ -130,7 +178,8 @@ public final class AplicacionSGA extends Application {
                     servicioPreparacion,
                     servicioFolios,
                     servicioTarifas,
-                    servicioDisponibilidad
+                    servicioDisponibilidad,
+                    servicioPortal
             );
 
             var tareasIniciales = new CargadorPreparaciones().cargar(
@@ -186,8 +235,36 @@ public final class AplicacionSGA extends Application {
         escenario.show();
         escenario.centerOnScreen();
 
+        relojVencimientos = new Timeline(
+                new KeyFrame(Duration.seconds(30), evento -> {
+                    try {
+                        int cantidad = servicioPanelReservas.procesarVencidas();
+
+                        if (cantidad > 0) {
+                            ventana.actualizarReservas();
+                        }
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        System.err.println(
+                                "No se pudieron procesar los vencimientos: "
+                                        + e.getMessage()
+                        );
+                    }
+                })
+        );
+
+        relojVencimientos.setCycleCount(Timeline.INDEFINITE);
+        relojVencimientos.play();
+
 
     }
+
+    @Override
+    public void stop() {
+        if (relojVencimientos != null) {
+            relojVencimientos.stop();
+        }
+    }
+
     private void validarApartamentosDelMapa(
             CatalogoApartamentosArbol catalogo,
             ServicioMapa.Ubicacion[] ubicaciones
