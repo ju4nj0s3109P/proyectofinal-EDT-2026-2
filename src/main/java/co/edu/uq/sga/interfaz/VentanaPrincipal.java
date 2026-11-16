@@ -5,6 +5,7 @@ import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioMapa.Recorrido;
 import co.edu.uq.sga.servicios.ServicioMapa.Ubicacion;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
+import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
 
 
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -51,7 +52,12 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     private final ToggleButton botonTablero =
             new ToggleButton("Inicio");
 
-    public VentanaPrincipal(ServicioMapa servicio, ServicioApartamentos servicioApartamentos) {
+    private final PanelPreparacion vistaPreparacion;
+
+    private final ToggleButton botonPreparacion =
+            new ToggleButton("Preparación");
+
+    public VentanaPrincipal(ServicioMapa servicio, ServicioApartamentos servicioApartamentos, ServicioPanelPreparacion servicioPreparacion) {
         this.controlador = new ControladorMapa(servicio, this);
         this.servicioApartamentos = servicioApartamentos;
 
@@ -76,13 +82,14 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                 this::seleccionarDestino
         );
 
+        vistaPreparacion = new PanelPreparacion(servicioPreparacion);
         setLeft(crearBarraLateral());
         vistaTablero = new PanelTablero(servicioApartamentos);
 
         vistaMapa = crearVistaMapa();
         vistaTabla = crearTabla(ubicaciones);
 
-        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla);
+        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla, vistaPreparacion);
 
         VBox contenido = new VBox(24, crearEncabezado(), vistas);
         contenido.getStyleClass().add("contenido");
@@ -111,6 +118,8 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
         botonMapa.setToggleGroup(grupo);
         botonUbicaciones.setToggleGroup(grupo);
+        botonPreparacion.setToggleGroup(grupo);
+        botonPreparacion.setId("nav-preparacion");
 
         botonMapa.setId("nav-mapa");
         botonUbicaciones.setId("nav-ubicaciones");
@@ -118,7 +127,7 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonTablero.setId("nav-tablero");
 
         for (ToggleButton boton :
-                new ToggleButton[]{botonTablero, botonMapa, botonUbicaciones}) {
+                new ToggleButton[]{botonTablero, botonMapa, botonUbicaciones, botonPreparacion}) {
             boton.getStyleClass().add("navegacion");
             boton.setMaxWidth(Double.MAX_VALUE);
             boton.setAlignment(Pos.CENTER_LEFT);
@@ -127,8 +136,9 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonTablero.setOnAction(evento -> mostrarTablero());
         botonMapa.setOnAction(evento -> mostrarVista(true));
         botonUbicaciones.setOnAction(evento -> mostrarVista(false));
+        botonPreparacion.setOnAction(evento -> mostrarPreparacion());
 
-        VBox menu = new VBox(8,botonTablero, botonMapa, botonUbicaciones);
+        VBox menu = new VBox(8,botonTablero, botonMapa, botonUbicaciones, botonPreparacion);
 
         Region espacio = new Region();
         VBox.setVgrow(espacio, Priority.ALWAYS);
@@ -367,11 +377,15 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
             mapa.actualizarEstados(servicioApartamentos.consultarTodos());
         }
 
+
         vistaTablero.setVisible(false);
         vistaTablero.setManaged(false);
         botonTablero.setSelected(false);
         vistaMapa.setVisible(mostrarMapa);
         vistaMapa.setManaged(mostrarMapa);
+        vistaPreparacion.setVisible(false);
+        vistaPreparacion.setManaged(false);
+        botonPreparacion.setSelected(false);
 
         vistaTabla.setVisible(!mostrarMapa);
         vistaTabla.setManaged(!mostrarMapa);
@@ -387,6 +401,10 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarTablero() {
+
+        vistaPreparacion.setVisible(false);
+        vistaPreparacion.setManaged(false);
+        botonPreparacion.setSelected(false);
         vistaTablero.actualizar();
 
         vistaTablero.setVisible(true);
@@ -411,5 +429,28 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         etiqueta.setWrapText(true);
 
         return etiqueta;
+    }
+
+    private void mostrarPreparacion() {
+        vistaPreparacion.actualizar();
+
+        vistaTablero.setVisible(false);
+        vistaTablero.setManaged(false);
+
+        vistaMapa.setVisible(false);
+        vistaMapa.setManaged(false);
+
+        vistaTabla.setVisible(false);
+        vistaTabla.setManaged(false);
+
+        vistaPreparacion.setVisible(true);
+        vistaPreparacion.setManaged(true);
+
+        botonTablero.setSelected(false);
+        botonMapa.setSelected(false);
+        botonUbicaciones.setSelected(false);
+        botonPreparacion.setSelected(true);
+
+        titulo.setText("Preparación de apartamentos");
     }
 }

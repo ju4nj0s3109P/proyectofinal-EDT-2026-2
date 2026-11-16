@@ -4,8 +4,11 @@ import co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
 import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
 import co.edu.uq.sga.persistencia.CargadorApartamentos;
+import co.edu.uq.sga.persistencia.CargadorPreparaciones;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
+import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
+import java.time.LocalDate;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -22,6 +25,8 @@ public final class AplicacionSGA extends Application {
     private ServicioMapa servicio;
     private ServicioApartamentos servicioApartamentos;
     private String errorCarga;
+    private ServicioPanelPreparacion servicioPreparacion;
+
 
     @Override
     public void init() {
@@ -74,6 +79,25 @@ public final class AplicacionSGA extends Application {
 
             this.servicioApartamentos = new ServicioApartamentos(catalogo);
 
+            this.servicioPreparacion = new ServicioPanelPreparacion(
+                    catalogo,
+                    new CalculadorRutasGrafo(mapa.grafo()),
+                    LocalDate.now()
+            );
+
+            var tareasIniciales = new CargadorPreparaciones().cargar(
+                    Path.of("data", "preparaciones.csv"),
+                    servicioPreparacion.consultarFechaOperacion(),
+                    catalogo
+            );
+
+            for (var tarea : tareasIniciales) {
+                servicioPreparacion.encolarPendiente(
+                        tarea.apartamento(),
+                        tarea.llegada()
+                );
+            }
+
         } catch (IOException | IllegalStateException e) {
             errorCarga = "No se pudieron cargar los datos iniciales.\n\n"
                     + e.getMessage();
@@ -95,7 +119,7 @@ public final class AplicacionSGA extends Application {
             return;
         }
 
-        VentanaPrincipal ventana = new VentanaPrincipal(servicio, servicioApartamentos);
+        VentanaPrincipal ventana = new VentanaPrincipal(servicio, servicioApartamentos, servicioPreparacion);
         Scene escena = new Scene(ventana, 1280, 800);
 
         String estilos = Objects.requireNonNull(
