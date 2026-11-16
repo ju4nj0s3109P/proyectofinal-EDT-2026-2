@@ -1,6 +1,6 @@
 package co.edu.uq.sga.interfaz;
 
-import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
+import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;\nimport co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
 import co.edu.uq.sga.dominio.modelo.Apartamento;
 import co.edu.uq.sga.dominio.modelo.Huesped;
 import co.edu.uq.sga.dominio.modelo.Reserva;
@@ -14,7 +14,7 @@ import javafx.scene.layout.VBox;
 /** Consulta de perfil, favoritos e historial del huésped registrado. */
 public final class PanelPortalHuespedes extends BorderPane {
     private final CatalogoHuespedesArbol huespedes;
-    private final ServicioApartamentos apartamentos;
+    private final CatalogoApartamentosArbol apartamentos;
     private final ServicioPerfilesHuesped perfiles;
     private final TextField documento = new TextField();
     private final ListView<String> favoritos = new ListView<>();
@@ -24,13 +24,13 @@ public final class PanelPortalHuespedes extends BorderPane {
     private Huesped huespedActual;
 
     public PanelPortalHuespedes(CatalogoHuespedesArbol huespedes,
-            ServicioApartamentos apartamentos, ServicioPerfilesHuesped perfiles) {
+            CatalogoApartamentosArbol apartamentos, ServicioPerfilesHuesped perfiles) {
         this.huespedes = huespedes;
         this.apartamentos = apartamentos;
         this.perfiles = perfiles;
         documento.setPromptText("Documento del huésped");
         seleccionarApartamento.setPromptText("Apartamento para favoritos");
-        for (Apartamento a : apartamentos.consultarTodos()) {
+        for (Apartamento a : apartamentos.listarPorCodigo()) {
             seleccionarApartamento.getItems().add(a.getCodigo() + " · " + a.getNombre());
         }
         Button consultar = new Button("Consultar perfil");
