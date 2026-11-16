@@ -1,6 +1,8 @@
 package co.edu.uq.sga.interfaz;
 
 import co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
+import co.edu.uq.sga.adaptadores.CatalogoEmpleadosArbol;
+import co.edu.uq.sga.adaptadores.ColaReservasPendientesPorVencimiento;
 import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
 import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
 import co.edu.uq.sga.adaptadores.CatalogoReservasArbol;
@@ -21,6 +23,13 @@ import co.edu.uq.sga.servicios.ServicioReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioFolios;
 import co.edu.uq.sga.servicios.ServicioDisponibilidad;
+import co.edu.uq.sga.servicios.ServicioEmpleados;
+import co.edu.uq.sga.servicios.ServicioTurnosRecepcion;
+import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
+import co.edu.uq.sga.servicios.ServicioReservasPortal;
+import co.edu.uq.sga.servicios.VigilanciaAutomaticaVencimientos;
+import co.edu.uq.sga.servicios.ServicioReportes;
+import java.time.Duration;
 
 import java.time.LocalDate;
 
@@ -43,6 +52,11 @@ public final class AplicacionSGA extends Application {
     private CatalogoHuespedesArbol catalogoHuespedes;
     private ServicioPanelReservas servicioPanelReservas;
     private ServicioTarifas servicioTarifas;
+    private ServicioReservas servicioReservas;
+    private ServicioReservasPortal servicioPortal;
+    private VigilanciaAutomaticaVencimientos vigilanciaVencimientos;
+    private ServicioEmpleados servicioEmpleados;
+    private ServicioTurnosRecepcion servicioTurnos;
 
 
     @Override
@@ -106,7 +120,16 @@ public final class AplicacionSGA extends Application {
 
             var indiceReservas = new IndiceReservasArbol();
             var catalogoReservas = new CatalogoReservasArbol();
-            var servicioReservas = new ServicioReservas(indiceReservas);
+            servicioReservas = new ServicioReservas(indiceReservas);
+            var colaVencimientos = new ColaReservasPendientesPorVencimiento(
+                    ServicioVencimientoReservas.comparadorPorVencimiento());
+            var servicioVencimientos = new ServicioVencimientoReservas(
+                    servicioReservas, colaVencimientos);
+            servicioPortal = new ServicioReservasPortal(servicioReservas, servicioVencimientos);
+            vigilanciaVencimientos = new VigilanciaAutomaticaVencimientos(
+                    servicioVencimientos, Duration.ofMinutes(1));
+            servicioEmpleados = new ServicioEmpleados(new CatalogoEmpleadosArbol());
+            servicioTurnos = new ServicioTurnosRecepcion();
             var servicioDisponibilidad = new ServicioDisponibilidad(
                     new ReservasDelIndice(indiceReservas)
             );
@@ -167,7 +190,17 @@ public final class AplicacionSGA extends Application {
             return;
         }
 
-        VentanaPrincipal ventana = new VentanaPrincipal(servicio, servicioApartamentos, servicioPreparacion, servicioPanelReservas);
+        vigilanciaVencimientos.iniciar();
+        var vistaAdministracion = new PanelAdministracion(servicioEmpleados, servicioTurnos);
+        var vistaPortal = new PanelPortalHuespedes(catalogoHuespedes,
+                new CargadorApartamentos().cargar(Path.of("data", "apartamentos.csv")),
+                servicioReservas.getServicioPerfilesHuesped());
+        var vistaCalendario = new PanelCalendario(servicioPanelReservas);
+        var vistaEstadisticas = new PanelEstadisticas(servicioPanelReservas);
+        var vistaFinanzas = new PanelGestionFinanciera(servicioPanelReservas);
+        VentanaPrincipal ventana = new VentanaPrincipal(servicio, servicioApartamentos,
+                servicioPreparacion, servicioPanelReservas, vistaAdministracion,
+                vistaPortal, vistaCalendario, vistaEstadisticas, vistaFinanzas);
         Scene escena = new Scene(ventana, 1280, 800);
 
         String estilos = Objects.requireNonNull(
@@ -188,6 +221,11 @@ public final class AplicacionSGA extends Application {
 
 
     }
+    @Override
+    public void stop() {
+        if (vigilanciaVencimientos != null) vigilanciaVencimientos.close();
+    }
+
     private void validarApartamentosDelMapa(
             CatalogoApartamentosArbol catalogo,
             ServicioMapa.Ubicacion[] ubicaciones
