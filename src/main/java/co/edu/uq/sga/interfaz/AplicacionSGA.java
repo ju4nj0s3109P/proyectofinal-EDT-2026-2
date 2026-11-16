@@ -2,12 +2,15 @@ package co.edu.uq.sga.interfaz;
 
 import co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
 import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
+import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
 import co.edu.uq.sga.persistencia.CargadorApartamentos;
 import co.edu.uq.sga.persistencia.CargadorPreparaciones;
+import co.edu.uq.sga.persistencia.CargadorHuespedes;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
 import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
+
 import java.time.LocalDate;
 
 import javafx.application.Application;
@@ -26,6 +29,7 @@ public final class AplicacionSGA extends Application {
     private ServicioApartamentos servicioApartamentos;
     private String errorCarga;
     private ServicioPanelPreparacion servicioPreparacion;
+    private CatalogoHuespedesArbol catalogoHuespedes;
 
 
     @Override
@@ -78,6 +82,10 @@ public final class AplicacionSGA extends Application {
             validarApartamentosDelMapa(catalogo, ubicaciones);
 
             this.servicioApartamentos = new ServicioApartamentos(catalogo);
+
+            catalogoHuespedes = new CargadorHuespedes().cargar(
+                    Path.of("data", "huespedes.csv")
+            );
 
             this.servicioPreparacion = new ServicioPanelPreparacion(
                     catalogo,
