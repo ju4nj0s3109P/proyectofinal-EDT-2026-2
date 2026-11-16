@@ -483,6 +483,94 @@ public final class PanelReservas extends VBox
             });
         });
 
+        Button proponerGrupo = new Button("Proponer para grupo");
+        proponerGrupo.getStyleClass().add("accion-secundaria");
+
+        proponerGrupo.setOnAction(evento -> {
+            error.setText("");
+
+            int personas = ocupantes.getItems().size();
+
+            if (personas == 0) {
+                error.setText("Agrega los ocupantes antes de buscar una combinación.");
+                return;
+            }
+
+            controlador.proponerGrupo(
+                    entrada.getValue(),
+                    salida.getValue(),
+                    personas
+            ).ifPresent(propuesta -> {
+                if (propuesta.length == 0) {
+                    error.setText(
+                            "No hay una combinación disponible con capacidad "
+                                    + "suficiente para el grupo en esas fechas."
+                    );
+                    return;
+                }
+
+                StringBuilder codigos = new StringBuilder();
+                StringBuilder detalle = new StringBuilder();
+                int capacidadTotal = 0;
+
+                for (ApartamentoDisponible apartamento : propuesta) {
+                    if (codigos.length() > 0) {
+                        codigos.append(",");
+                    }
+
+                    codigos.append(apartamento.codigo());
+
+                    detalle.append(apartamento.codigo())
+                            .append(" · ")
+                            .append(apartamento.nombre())
+                            .append(" · Capacidad: ")
+                            .append(apartamento.capacidad())
+                            .append("\n");
+
+                    capacidadTotal += apartamento.capacidad();
+                }
+
+                Alert confirmacion = new Alert(
+                        Alert.AlertType.CONFIRMATION,
+                        "",
+                        ButtonType.OK,
+                        ButtonType.CANCEL
+                );
+
+                confirmacion.initOwner(
+                        dialogo.getDialogPane().getScene().getWindow()
+                );
+                confirmacion.setTitle("Propuesta para el grupo");
+                confirmacion.setHeaderText(
+                        propuesta.length + " apartamentos para "
+                                + personas + " ocupantes"
+                );
+                confirmacion.setContentText(
+                        detalle
+                                + "\nCapacidad total: " + capacidadTotal
+                                + "\n\n¿Usar esta combinación en el formulario?"
+                );
+
+                confirmacion.getDialogPane().setPrefWidth(560);
+
+                confirmacion.getDialogPane()
+                        .lookupButton(ButtonType.OK)
+                        .getStyleClass()
+                        .add("accion-principal");
+
+                confirmacion.getDialogPane()
+                        .lookupButton(ButtonType.CANCEL)
+                        .getStyleClass()
+                        .add("accion-secundaria");
+
+                confirmacion.showAndWait()
+                        .filter(respuesta -> respuesta == ButtonType.OK)
+                        .ifPresent(respuesta ->
+                                apartamentos.setText(codigos.toString())
+                        );
+            });
+        });
+
         Label instruccionBusqueda = new Label(
                 "Completa las fechas y agrega los ocupantes; "
                         + "después busca un apartamento disponible."
@@ -493,7 +581,7 @@ public final class PanelReservas extends VBox
         VBox busqueda = new VBox(
                 8,
                 instruccionBusqueda,
-                new FlowPane(10, 10, new Label("Ordenar por:"), orden, buscar)
+                new FlowPane(10, 10, new Label("Ordenar por:"), orden, buscar, proponerGrupo)
         );
 
         VBox contenido = new VBox(

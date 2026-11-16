@@ -206,6 +206,35 @@ public final class ServicioPanelReservas {
         return resultado;
     }
 
+    public ApartamentoDisponible[] proponerGrupo(
+            LocalDate entrada,
+            LocalDate salida,
+            int personas
+    ) {
+        var propuesta = disponibilidad.asignarGrupo(
+                apartamentos.listarPorCodigo(),
+                new Estancia(entrada, salida),
+                personas
+        );
+
+        ApartamentoDisponible[] resultado =
+                new ApartamentoDisponible[propuesta.tamanio()];
+
+        int indice = 0;
+
+        for (var apartamento : propuesta) {
+            resultado[indice++] = new ApartamentoDisponible(
+                    apartamento.getCodigo(),
+                    apartamento.getNombre(),
+                    apartamento.getCapacidadMaxima(),
+                    apartamento.getNumeroDormitorios(),
+                    apartamento.getTarifaBaja()
+            );
+        }
+
+        return resultado;
+    }
+
     public ServicioTarifas.Cotizacion cotizarBorrador(
             String[] codigos,
             DatosOcupante[] datos,
@@ -377,7 +406,7 @@ public final class ServicioPanelReservas {
             StringBuilder codigos = new StringBuilder();
 
             for (var asignacion : reserva.getAsignaciones()) {
-                if (codigos.length() > 0) {
+                if (!codigos.isEmpty()) {
                     codigos.append(", ");
                 }
 
