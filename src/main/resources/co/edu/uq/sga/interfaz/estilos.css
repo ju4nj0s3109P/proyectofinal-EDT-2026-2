@@ -179,10 +179,6 @@
     -fx-background-color: #f4f8f2;
 }
 
-.nodo:en-ruta {
-    -fx-background-color: #fff2e8;
-}
-
 .nodo:destino,
 .nodo:focused {
     -fx-border-color: #bd623e;
@@ -270,4 +266,91 @@
 
 .accion-principal:disabled {
     -fx-opacity: 0.45;
+}
+
+.tablero-scroll,
+.tablero-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.tablero-scroll {
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.tarjetas-apartamentos {
+    -fx-padding: 4;
+}
+
+.tarjeta-apartamento {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #e2e7de;
+    -fx-border-radius: 14;
+    -fx-padding: 22;
+}
+
+.estado-apartamento {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 7 11;
+    -fx-background-radius: 7;
+}
+
+.estado-preparado {
+    -fx-background-color: #e1f2e5;
+    -fx-text-fill: #24683a;
+}
+
+.estado-ocupado {
+    -fx-background-color: #e2edfc;
+    -fx-text-fill: #245a96;
+}
+
+.estado-pendiente {
+    -fx-background-color: #fff1c2;
+    -fx-text-fill: #765900;
+}
+
+.estado-fuera-servicio {
+    -fx-background-color: #fbe3e3;
+    -fx-text-fill: #a13030;
+}
+
+/* Estados operativos de los apartamentos del mapa */
+
+.nodo:preparado {
+    -fx-background-color: #e1f2e5;
+    -fx-text-fill: #24683a;
+}
+
+.nodo:ocupado {
+    -fx-background-color: #e2edfc;
+    -fx-text-fill: #245a96;
+}
+
+.nodo:pendiente {
+    -fx-background-color: #fff1c2;
+    -fx-text-fill: #765900;
+}
+
+.nodo:fuera-servicio {
+    -fx-background-color: #fbe3e3;
+    -fx-text-fill: #a13030;
+}
+
+.nodo:en-ruta {
+    -fx-border-color: #bd623e;
+    -fx-border-width: 3;
+}
+
+.pasillo:cerrado {
+    -fx-stroke: #b83d3d;
+    -fx-stroke-width: 3;
+    -fx-stroke-dash-array: 8 6;
+}
+
+.peso-pasillo:cerrado {
+    -fx-text-fill: #a13030;
+    -fx-background-color: #fbe3e3;
 }

@@ -66,4 +66,175 @@ public class CargadorMapaEdificio {
 
         return new MapaCargado(grafo, ubicaciones);
     }
+    public MapaCargado cargar(
+            Path archivoUbicaciones,
+            Path archivoPasillos
+    ) throws IOException {
+
+        Grafo<String> grafo = new Grafo<>(false);
+        ListaEnlazada<Ubicacion> ubicaciones = new ListaEnlazada<>();
+
+        var filasUbicaciones = leerTablaCsv(
+                archivoUbicaciones,
+                new String[]{"id", "tipo", "nombre"}
+        );
+
+        int registro = 0;
+        int recepciones = 0;
+
+        for (String[] fila : filasUbicaciones) {
+            registro++;
+
+            if (registro == 1) {
+                continue;
+            }
+
+            try {
+                String[] campos = validarCamposCsv(fila, 3);
+
+                switch (campos[1]) {
+                    case "RECEPCION", "CUARTO_ASEO",
+                         "ESCALERA", "APARTAMENTO" -> {
+                        // Tipos admitidos para las ubicaciones del edificio.
+                    }
+                    default -> throw new IllegalArgumentException(
+                            "Tipo de ubicación desconocido: " + campos[1]
+                    );
+                }
+
+                if (!grafo.agregarVertice(campos[0])) {
+                    throw new IllegalArgumentException(
+                            "Ubicación repetida: " + campos[0]
+                    );
+                }
+
+                ubicaciones.agregarAlFinal(
+                        new Ubicacion(campos[0], campos[1], campos[2])
+                );
+
+                if ("RECEPCION".equals(campos[1])) {
+                    recepciones++;
+                }
+
+            } catch (IllegalArgumentException e) {
+                throw errorCsv(archivoUbicaciones, registro - 1, e);
+            }
+        }
+
+        if (recepciones != 1) {
+            throw new IOException(
+                    archivoUbicaciones
+                            + ": debe existir exactamente una recepción."
+            );
+        }
+
+        var filasPasillos = leerTablaCsv(
+                archivoPasillos,
+                new String[]{"origen", "destino", "metros"}
+        );
+
+        registro = 0;
+
+        for (String[] fila : filasPasillos) {
+            registro++;
+
+            if (registro == 1) {
+                continue;
+            }
+
+            try {
+                String[] campos = validarCamposCsv(fila, 3);
+
+                String origen = campos[0];
+                String destino = campos[1];
+                double metros = Double.parseDouble(campos[2]);
+
+                if (!grafo.existeVertice(origen)
+                        || !grafo.existeVertice(destino)) {
+                    throw new IllegalArgumentException(
+                            "El pasillo referencia una ubicación inexistente: "
+                                    + origen + " - " + destino
+                    );
+                }
+
+                if (grafo.pesoArista(origen, destino).isPresent()) {
+                    throw new IllegalArgumentException(
+                            "Pasillo repetido: " + origen + " - " + destino
+                    );
+                }
+
+                grafo.agregarArista(origen, destino, metros);
+
+            } catch (IllegalArgumentException e) {
+                throw errorCsv(archivoPasillos, registro - 1, e);
+            }
+        }
+
+        return new MapaCargado(grafo, ubicaciones);
+    }
+
+    private ListaEnlazada<String[]> leerTablaCsv(
+            Path archivo,
+            String[] encabezadosEsperados
+    ) throws IOException {
+
+        var filas = new LectorCSV().leer(archivo);
+
+        if (filas.estaVacia()) {
+            throw new IOException("El archivo CSV está vacío: " + archivo);
+        }
+
+        String[] encabezados = filas.primero();
+
+        if (encabezados.length != encabezadosEsperados.length) {
+            throw new IOException(
+                    archivo + ": cantidad de columnas incorrecta."
+            );
+        }
+
+        for (int i = 0; i < encabezadosEsperados.length; i++) {
+            if (!encabezadosEsperados[i].equals(encabezados[i].trim())) {
+                throw new IOException(
+                        archivo + ": en la columna " + (i + 1)
+                                + " se esperaba " + encabezadosEsperados[i]
+                );
+            }
+        }
+
+        return filas;
+    }
+
+    private String[] validarCamposCsv(String[] fila, int cantidad) {
+        if (fila.length != cantidad) {
+            throw new IllegalArgumentException(
+                    "Se esperaban " + cantidad + " columnas."
+            );
+        }
+
+        String[] campos = fila.clone();
+
+        for (int i = 0; i < campos.length; i++) {
+            campos[i] = campos[i].trim();
+
+            if (campos[i].isEmpty()) {
+                throw new IllegalArgumentException(
+                        "La columna " + (i + 1) + " está vacía."
+                );
+            }
+        }
+
+        return campos;
+    }
+
+    private IOException errorCsv(
+            Path archivo,
+            int registro,
+            IllegalArgumentException causa
+    ) {
+        return new IOException(
+                archivo + ", registro de datos " + registro
+                        + ": " + causa.getMessage(),
+                causa
+        );
+    }
 }

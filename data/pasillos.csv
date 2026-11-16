@@ -1,0 +1,6 @@
+origen;destino;metros
+REC;A101;30
+REC;ESC;8
+ESC;A101;7
+REC;ASEO;5
+ASEO;A102;9

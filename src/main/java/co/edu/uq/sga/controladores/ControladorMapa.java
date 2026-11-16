@@ -44,4 +44,20 @@ public final class ControladorMapa {
         Recorrido recorrido = servicio.calcularDesdeRecepcion(codigoDestino);
         vista.mostrarRecorrido(codigoDestino, recorrido);
     }
+
+    public boolean estaAbierto(Pasillo pasillo) {
+        return servicio.estaAbierto(pasillo);
+    }
+
+    public void cambiarEstadoPasillo(Pasillo pasillo, boolean abierto) {
+        servicio.cambiarEstadoPasillo(pasillo, abierto);
+    }
+
+    public Pasillo[] consultarPasillosCerrados() {
+        return servicio.consultarPasillosCerrados();
+    }
+
+    public String[] consultarApartamentosInalcanzables() {
+        return servicio.consultarApartamentosInalcanzables();
+    }
 }

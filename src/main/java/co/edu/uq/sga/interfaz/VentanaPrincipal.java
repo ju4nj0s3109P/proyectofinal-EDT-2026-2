@@ -4,6 +4,11 @@ import co.edu.uq.sga.controladores.ControladorMapa;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioMapa.Recorrido;
 import co.edu.uq.sga.servicios.ServicioMapa.Ubicacion;
+import co.edu.uq.sga.servicios.ServicioMapa.Pasillo;
+import co.edu.uq.sga.servicios.ServicioApartamentos;
+import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
+import co.edu.uq.sga.servicios.ServicioPanelReservas;
+
 
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.geometry.Pos;
@@ -16,6 +21,7 @@ import java.text.DecimalFormat;
 public class VentanaPrincipal extends BorderPane implements ControladorMapa.VistaMapa {
 
     private final ControladorMapa controlador;
+    private final ServicioApartamentos servicioApartamentos;
 
     private final Label titulo =
             etiqueta("Mapa del edificio", "titulo");
@@ -36,6 +42,11 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     private final ToggleButton botonUbicaciones =
             new ToggleButton("Ubicaciones");
 
+    private final PanelReservas vistaReservas;
+
+    private final ToggleButton botonReservas =
+            new ToggleButton("Reservas");
+
     private final PanelMapa mapa;
 
     private final StackPane vistas = new StackPane();
@@ -43,8 +54,23 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     private final Node vistaMapa;
     private final Node vistaTabla;
 
-    public VentanaPrincipal(ServicioMapa servicio) {
+    private final PanelTablero vistaTablero;
+
+    private final ToggleButton botonTablero =
+            new ToggleButton("Inicio");
+
+    private final PanelPreparacion vistaPreparacion;
+
+    private final ToggleButton botonPreparacion =
+            new ToggleButton("Preparación");
+
+    public VentanaPrincipal(ServicioMapa servicio,
+                            ServicioApartamentos servicioApartamentos,
+                            ServicioPanelPreparacion servicioPreparacion,
+                            ServicioPanelReservas servicioPanelReservas
+    ) {
         this.controlador = new ControladorMapa(servicio, this);
+        this.servicioApartamentos = servicioApartamentos;
 
         getStyleClass().add("ventana");
 
@@ -66,12 +92,22 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                 this::seleccionarDestino
         );
 
+        vistaPreparacion = new PanelPreparacion(
+                servicioPreparacion,
+                codigo -> {
+                    seleccionarDestino(codigo);
+                    mostrarVista(true);
+                }
+        );
+        vistaReservas = new PanelReservas(servicioPanelReservas);
+
         setLeft(crearBarraLateral());
+        vistaTablero = new PanelTablero(servicioApartamentos);
 
         vistaMapa = crearVistaMapa();
         vistaTabla = crearTabla(ubicaciones);
 
-        vistas.getChildren().addAll(vistaMapa, vistaTabla);
+        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla, vistaPreparacion, vistaReservas);
 
         VBox contenido = new VBox(24, crearEncabezado(), vistas);
         contenido.getStyleClass().add("contenido");
@@ -88,7 +124,7 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                 )
         );
 
-        mostrarVista(true);
+        mostrarTablero();
     }
 
     private VBox crearBarraLateral() {
@@ -97,23 +133,35 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         VBox identidad = new VBox(6, marca, lugar);
 
         ToggleGroup grupo = new ToggleGroup();
+
         botonMapa.setToggleGroup(grupo);
         botonUbicaciones.setToggleGroup(grupo);
+        botonPreparacion.setToggleGroup(grupo);
+        botonPreparacion.setId("nav-preparacion");
 
         botonMapa.setId("nav-mapa");
         botonUbicaciones.setId("nav-ubicaciones");
+        botonTablero.setToggleGroup(grupo);
+        botonTablero.setId("nav-tablero");
+        botonReservas.setToggleGroup(grupo);
+        botonReservas.setId("nav-reservas");
 
         for (ToggleButton boton :
-                new ToggleButton[]{botonMapa, botonUbicaciones}) {
+                new ToggleButton[]{botonTablero, botonReservas, botonMapa, botonUbicaciones, botonPreparacion}) {
             boton.getStyleClass().add("navegacion");
             boton.setMaxWidth(Double.MAX_VALUE);
             boton.setAlignment(Pos.CENTER_LEFT);
         }
 
+        botonTablero.setOnAction(evento -> mostrarTablero());
         botonMapa.setOnAction(evento -> mostrarVista(true));
         botonUbicaciones.setOnAction(evento -> mostrarVista(false));
+        botonPreparacion.setOnAction(evento -> mostrarPreparacion());
+        botonReservas.setOnAction(evento -> mostrarReservas());
+        botonReservas.setToggleGroup(grupo);
 
-        VBox menu = new VBox(8, botonMapa, botonUbicaciones);
+
+        VBox menu = new VBox(8,botonTablero, botonReservas, botonMapa, botonUbicaciones, botonPreparacion);
 
         Region espacio = new Region();
         VBox.setVgrow(espacio, Priority.ALWAYS);
@@ -152,9 +200,13 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         scroll.setFitToHeight(true);
         scroll.setPannable(true);
         scroll.getStyleClass().add("mapa-scroll");
+        Button gestionarPasillos = new Button("Gestionar pasillos");
+        gestionarPasillos.getStyleClass().add("accion-principal");
+        gestionarPasillos.setOnAction(evento -> abrirGestionPasillos());
 
         VBox zonaMapa = new VBox(
                 12,
+                gestionarPasillos,
                 scroll,
                 etiqueta(
                         "Esquema de conexiones · Distancias en metros",
@@ -347,8 +399,29 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarVista(boolean mostrarMapa) {
+
+        vistaReservas.setVisible(false);
+        vistaReservas.setManaged(false);
+        botonReservas.setSelected(false);
+
+        if (mostrarMapa) {
+            mapa.actualizarEstados(servicioApartamentos.consultarTodos());
+            mapa.actualizarPasillosCerrados(
+                    controlador.consultarPasillosCerrados()
+            );
+
+            actualizarRuta();
+        }
+
+
+        vistaTablero.setVisible(false);
+        vistaTablero.setManaged(false);
+        botonTablero.setSelected(false);
         vistaMapa.setVisible(mostrarMapa);
         vistaMapa.setManaged(mostrarMapa);
+        vistaPreparacion.setVisible(false);
+        vistaPreparacion.setManaged(false);
+        botonPreparacion.setSelected(false);
 
         vistaTabla.setVisible(!mostrarMapa);
         vistaTabla.setManaged(!mostrarMapa);
@@ -363,11 +436,206 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         );
     }
 
+    private void mostrarTablero() {
+
+        vistaReservas.setVisible(false);
+        vistaReservas.setManaged(false);
+        botonReservas.setSelected(false);
+
+        vistaPreparacion.setVisible(false);
+        vistaPreparacion.setManaged(false);
+        botonPreparacion.setSelected(false);
+        vistaTablero.actualizar();
+
+        vistaTablero.setVisible(true);
+        vistaTablero.setManaged(true);
+
+        vistaMapa.setVisible(false);
+        vistaMapa.setManaged(false);
+
+        vistaTabla.setVisible(false);
+        vistaTabla.setManaged(false);
+
+        botonTablero.setSelected(true);
+        botonMapa.setSelected(false);
+        botonUbicaciones.setSelected(false);
+
+        titulo.setText("Estado de los apartamentos");
+    }
+
     private static Label etiqueta(String texto, String estilo) {
         Label etiqueta = new Label(texto);
         etiqueta.getStyleClass().add(estilo);
         etiqueta.setWrapText(true);
 
         return etiqueta;
+    }
+
+    private void mostrarPreparacion() {
+
+        vistaReservas.setVisible(false);
+        vistaReservas.setManaged(false);
+
+
+        vistaTablero.setVisible(false);
+        vistaTablero.setManaged(false);
+
+        vistaMapa.setVisible(false);
+        vistaMapa.setManaged(false);
+
+        vistaTabla.setVisible(false);
+        vistaTabla.setManaged(false);
+
+        vistaPreparacion.setVisible(true);
+        vistaPreparacion.setManaged(true);
+
+        vistaPreparacion.actualizar();
+
+        botonTablero.setSelected(false);
+        botonMapa.setSelected(false);
+        botonUbicaciones.setSelected(false);
+        botonPreparacion.setSelected(true);
+        botonReservas.setSelected(false);
+
+        titulo.setText("Preparación de apartamentos");
+    }
+
+    private void abrirGestionPasillos() {
+        Dialog<Void> dialogo = new Dialog<>();
+        dialogo.setTitle("Pasillos del edificio");
+        dialogo.setHeaderText(
+                "Los cierres afectan las rutas desde recepción."
+        );
+        dialogo.initOwner(getScene().getWindow());
+        dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        ListView<Pasillo> lista = new ListView<>();
+        lista.getItems().addAll(controlador.consultarPasillos());
+        lista.setPrefHeight(240);
+
+        lista.setCellFactory(vista -> new ListCell<>() {
+            @Override
+            protected void updateItem(Pasillo pasillo, boolean vacio) {
+                super.updateItem(pasillo, vacio);
+
+                if (vacio || pasillo == null) {
+                    setText(null);
+                    return;
+                }
+
+                String estado = controlador.estaAbierto(pasillo)
+                        ? "Abierto"
+                        : "Cerrado";
+
+                setText(
+                        pasillo.origen() + " ↔ " + pasillo.destino()
+                                + " · " + pasillo.metros() + " m"
+                                + " · " + estado
+                );
+            }
+        });
+
+        Label conectividad = new Label();
+        conectividad.setWrapText(true);
+        actualizarConectividad(conectividad);
+
+        Button cerrar = new Button("Cerrar pasillo");
+        Button abrir = new Button("Abrir pasillo");
+
+        cerrar.disableProperty().bind(
+                lista.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        abrir.disableProperty().bind(
+                lista.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        cerrar.setOnAction(evento ->
+                cambiarPasilloSeleccionado(lista, false, conectividad)
+        );
+
+        abrir.setOnAction(evento ->
+                cambiarPasilloSeleccionado(lista, true, conectividad)
+        );
+
+        VBox contenido = new VBox(
+                16,
+                lista,
+                new HBox(12, cerrar, abrir),
+                conectividad
+        );
+
+        dialogo.getDialogPane().setContent(contenido);
+        dialogo.getDialogPane().setPrefWidth(560);
+        dialogo.setResizable(true);
+        dialogo.showAndWait();
+    }
+
+    private void cambiarPasilloSeleccionado(
+            ListView<Pasillo> lista,
+            boolean abierto,
+            Label conectividad
+    ) {
+        Pasillo seleccionado =
+                lista.getSelectionModel().getSelectedItem();
+
+        if (seleccionado == null) {
+            return;
+        }
+
+        try {
+            controlador.cambiarEstadoPasillo(seleccionado, abierto);
+
+            lista.refresh();
+
+            mapa.actualizarPasillosCerrados(
+                    controlador.consultarPasillosCerrados()
+            );
+
+            actualizarRuta();
+            actualizarConectividad(conectividad);
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING);
+            alerta.initOwner(getScene().getWindow());
+            alerta.setTitle("Gestión de pasillos");
+            alerta.setHeaderText("No se pudo cambiar el pasillo");
+            alerta.setContentText(e.getMessage());
+            alerta.showAndWait();
+        }
+    }
+
+    private void actualizarConectividad(Label etiqueta) {
+        String[] aislados =
+                controlador.consultarApartamentosInalcanzables();
+
+        etiqueta.setText(
+                aislados.length == 0
+                        ? "Todos los apartamentos son accesibles desde recepción."
+                        : "Apartamentos inalcanzables desde recepción: "
+                        + String.join(", ", aislados)
+        );
+    }
+
+    private void mostrarReservas() {
+        vistaReservas.actualizar();
+
+        for (Node vista : new Node[]{
+                vistaTablero, vistaMapa, vistaTabla, vistaPreparacion
+        }) {
+            vista.setVisible(false);
+            vista.setManaged(false);
+        }
+
+        vistaReservas.setVisible(true);
+        vistaReservas.setManaged(true);
+
+        botonTablero.setSelected(false);
+        botonMapa.setSelected(false);
+        botonUbicaciones.setSelected(false);
+        botonPreparacion.setSelected(false);
+        botonReservas.setSelected(true);
+
+        titulo.setText("Reservas del alojamiento");
     }
 }

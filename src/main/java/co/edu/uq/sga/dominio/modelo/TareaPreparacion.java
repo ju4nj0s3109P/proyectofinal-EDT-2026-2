@@ -25,9 +25,6 @@ public class TareaPreparacion {
         if (fechaHoraCreacion == null) {
             throw new IllegalArgumentException("La fecha de creación es obligatoria.");
         }
-        if (fechaHoraLlegada == null) {
-            throw new IllegalArgumentException("La fecha y hora de llegada son obligatorias.");
-        }
         this.codigo = codigo.trim();
         this.apartamento = apartamento;
         this.fechaHoraCreacion = fechaHoraCreacion;
@@ -52,8 +49,15 @@ public class TareaPreparacion {
         }
         return Comparator
                 .comparing((TareaPreparacion tarea) ->
-                        !tarea.fechaHoraLlegada.toLocalDate().equals(fechaActual))
-                .thenComparing(TareaPreparacion::getFechaHoraLlegada)
+                        tarea.fechaHoraLlegada == null
+                                || !tarea.fechaHoraLlegada.toLocalDate()
+                                .equals(fechaActual))
+                .thenComparing(
+                    TareaPreparacion::getFechaHoraLlegada,
+                    Comparator.nullsLast(
+                            Comparator.<LocalDateTime>naturalOrder()
+                    )
+                )
                 .thenComparing(TareaPreparacion::getFechaHoraCreacion)
                 .thenComparing(TareaPreparacion::getCodigo);
     }

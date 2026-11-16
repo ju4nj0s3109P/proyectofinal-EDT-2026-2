@@ -52,4 +52,43 @@ public class CalculadorRutasGrafo implements CalculadorRutas {
     private static String[] aArreglo(Ruta<String> ruta) {
         return ruta.existe() ? ruta.getCamino().aArreglo(String[]::new) : new String[0];
     }
+
+    public boolean estaAbierto(String origen, String destino) {
+        for (var arista : mapa.aristas()) {
+            boolean directo = arista.getOrigen().equals(origen)
+                    && arista.getDestino().equals(destino);
+
+            boolean inverso = !mapa.esDirigido()
+                    && arista.getOrigen().equals(destino)
+                    && arista.getDestino().equals(origen);
+
+            if (directo || inverso) {
+                return arista.estaAbierta();
+            }
+        }
+
+        throw new IllegalArgumentException(
+                "No existe el pasillo " + origen + " - " + destino
+        );
+    }
+
+    public void cambiarEstadoPasillo(
+            String origen,
+            String destino,
+            boolean abierto
+    ) {
+        boolean encontrado = abierto
+                ? mapa.abrirArista(origen, destino)
+                : mapa.cerrarArista(origen, destino);
+
+        if (!encontrado) {
+            throw new IllegalArgumentException(
+                    "No existe el pasillo " + origen + " - " + destino
+            );
+        }
+    }
+
+    public String[] consultarInalcanzables(String origen) {
+        return mapa.inalcanzablesDesde(origen).aArreglo(String[]::new);
+    }
 }

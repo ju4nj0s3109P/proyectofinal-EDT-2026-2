@@ -45,4 +45,59 @@ public final class ServicioMapa {
         String[] ruta = calculador.calcularRuta(origen, destino);
         return new Recorrido(ruta, calculador.costoRuta(origen, destino));
     }
+
+    public boolean estaAbierto(Pasillo pasillo) {
+        Objects.requireNonNull(pasillo, "El pasillo es obligatorio.");
+
+        return calculador.estaAbierto(
+                pasillo.origen(), pasillo.destino()
+        );
+    }
+
+    public void cambiarEstadoPasillo(Pasillo pasillo, boolean abierto) {
+        Objects.requireNonNull(pasillo, "El pasillo es obligatorio.");
+
+        calculador.cambiarEstadoPasillo(
+                pasillo.origen(), pasillo.destino(), abierto
+        );
+    }
+
+    public Pasillo[] consultarPasillosCerrados() {
+        Pasillo[] temporal = new Pasillo[pasillos.length];
+        int cantidad = 0;
+
+        for (Pasillo pasillo : pasillos) {
+            if (!estaAbierto(pasillo)) {
+                temporal[cantidad++] = pasillo;
+            }
+        }
+
+        Pasillo[] cerrados = new Pasillo[cantidad];
+        System.arraycopy(temporal, 0, cerrados, 0, cantidad);
+
+        return cerrados;
+    }
+
+    public String[] consultarApartamentosInalcanzables() {
+        String[] inalcanzables =
+                calculador.consultarInalcanzables(consultarRecepcion());
+
+        String[] temporal = new String[inalcanzables.length];
+        int cantidad = 0;
+
+        for (String codigo : inalcanzables) {
+            for (Ubicacion ubicacion : ubicaciones) {
+                if (codigo.equals(ubicacion.id())
+                        && "APARTAMENTO".equals(ubicacion.tipo())) {
+                    temporal[cantidad++] = codigo;
+                    break;
+                }
+            }
+        }
+
+        String[] apartamentos = new String[cantidad];
+        System.arraycopy(temporal, 0, apartamentos, 0, cantidad);
+
+        return apartamentos;
+    }
 }
