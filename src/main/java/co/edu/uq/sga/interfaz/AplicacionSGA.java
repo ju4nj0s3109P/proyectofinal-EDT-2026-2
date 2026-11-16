@@ -1,6 +1,8 @@
 package co.edu.uq.sga.interfaz;
 
 import co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
+import co.edu.uq.sga.adaptadores.CatalogoEmpleadosArbol;
+import co.edu.uq.sga.adaptadores.ColaReservasPendientesPorVencimiento;
 import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
 import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
 import co.edu.uq.sga.adaptadores.CatalogoReservasArbol;
@@ -22,6 +24,13 @@ import co.edu.uq.sga.servicios.ServicioReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioFolios;
 import co.edu.uq.sga.servicios.ServicioDisponibilidad;
+import co.edu.uq.sga.servicios.ServicioEmpleados;
+import co.edu.uq.sga.servicios.ServicioTurnosRecepcion;
+import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
+import co.edu.uq.sga.servicios.ServicioReservasPortal;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 import co.edu.uq.sga.adaptadores.ColaReservasPendientesPorVencimiento;
 import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
 import co.edu.uq.sga.servicios.ServicioReservasPortal;
@@ -34,9 +43,6 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.util.Duration;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -51,7 +57,12 @@ public final class AplicacionSGA extends Application {
     private CatalogoHuespedesArbol catalogoHuespedes;
     private ServicioPanelReservas servicioPanelReservas;
     private ServicioTarifas servicioTarifas;
+    private ServicioReservas servicioReservas;
+    private ServicioReservasPortal servicioPortal;
+    private ServicioEmpleados servicioEmpleados;
+    private ServicioTurnosRecepcion servicioTurnos;
     private Timeline relojVencimientos;
+    private CatalogoApartamentosArbol catalogoApartamentos;
 
 
     @Override
@@ -104,6 +115,7 @@ public final class AplicacionSGA extends Application {
             Path archivoApartamentos = Path.of("data", "apartamentos.csv");
 
             var catalogo = new CargadorApartamentos().cargar(archivoApartamentos);
+            catalogoApartamentos = catalogo;
 
             validarApartamentosDelMapa(catalogo, ubicaciones);
 
@@ -115,7 +127,20 @@ public final class AplicacionSGA extends Application {
 
             var indiceReservas = new IndiceReservasArbol();
             var catalogoReservas = new CatalogoReservasArbol();
-            var servicioReservas = new ServicioReservas(indiceReservas);
+            servicioReservas = new ServicioReservas(indiceReservas);
+            var colaVencimientos = new ColaReservasPendientesPorVencimiento(
+                    ServicioVencimientoReservas.comparadorPorVencimiento()
+            );
+            var servicioVencimientos = new ServicioVencimientoReservas(
+                    servicioReservas,
+                    colaVencimientos
+            );
+            servicioPortal = new ServicioReservasPortal(
+                    servicioReservas,
+                    servicioVencimientos
+            );
+            servicioEmpleados = new ServicioEmpleados(new CatalogoEmpleadosArbol());
+            servicioTurnos = new ServicioTurnosRecepcion();
             var servicioDisponibilidad = new ServicioDisponibilidad(
                     new ReservasDelIndice(indiceReservas)
             );
@@ -155,20 +180,6 @@ public final class AplicacionSGA extends Application {
                     );
                 }
             }
-
-            var colaVencimientos = new ColaReservasPendientesPorVencimiento(
-                    ServicioVencimientoReservas.comparadorPorVencimiento()
-            );
-
-            var servicioVencimientos = new ServicioVencimientoReservas(
-                    servicioReservas,
-                    colaVencimientos
-            );
-
-            var servicioPortal = new ServicioReservasPortal(
-                    servicioReservas,
-                    servicioVencimientos
-            );
 
             servicioPanelReservas = new ServicioPanelReservas(
                     catalogo,
@@ -216,7 +227,15 @@ public final class AplicacionSGA extends Application {
             return;
         }
 
-        VentanaPrincipal ventana = new VentanaPrincipal(servicio, servicioApartamentos, servicioPreparacion, servicioPanelReservas);
+        var vistaAdministracion = new PanelAdministracion(servicioEmpleados, servicioTurnos);
+        var vistaPortal = new PanelPortalHuespedes(catalogoHuespedes, catalogoApartamentos,
+                servicioReservas.getServicioPerfilesHuesped());
+        var vistaCalendario = new PanelCalendario(servicioPanelReservas);
+        var vistaEstadisticas = new PanelEstadisticas(servicioPanelReservas);
+        var vistaFinanzas = new PanelGestionFinanciera(servicioPanelReservas);
+        VentanaPrincipal ventana = new VentanaPrincipal(servicio, servicioApartamentos,
+                servicioPreparacion, servicioPanelReservas, vistaAdministracion,
+                vistaPortal, vistaCalendario, vistaEstadisticas, vistaFinanzas);
         Scene escena = new Scene(ventana, 1280, 800);
 
         String estilos = Objects.requireNonNull(
@@ -239,7 +258,6 @@ public final class AplicacionSGA extends Application {
                 new KeyFrame(Duration.seconds(30), evento -> {
                     try {
                         int cantidad = servicioPanelReservas.procesarVencidas();
-
                         if (cantidad > 0) {
                             ventana.actualizarReservas();
                         }
@@ -251,11 +269,8 @@ public final class AplicacionSGA extends Application {
                     }
                 })
         );
-
         relojVencimientos.setCycleCount(Timeline.INDEFINITE);
         relojVencimientos.play();
-
-
     }
 
     @Override
