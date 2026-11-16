@@ -7,6 +7,7 @@ import co.edu.uq.sga.dominio.enums.EstadoTareaPreparacion;
 import co.edu.uq.sga.dominio.excepciones.ExcepcionDominio;
 import co.edu.uq.sga.dominio.modelo.Apartamento;
 import co.edu.uq.sga.dominio.modelo.TareaPreparacion;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /** Coordina las tareas de preparación y delega su prioridad y rutas a los adaptadores. */
@@ -26,7 +27,6 @@ public class ServicioPreparacion {
         this.calculadorRutas = calculadorRutas;
     }
 
-    /** Encola la tarea y marca el apartamento para impedir duplicados. */
     public void encolar(TareaPreparacion tarea) {
         if (tarea == null) {
             throw new IllegalArgumentException("La tarea es obligatoria.");
@@ -43,8 +43,14 @@ public class ServicioPreparacion {
         apartamento.cambiarEstadoOperativo(EstadoApartamento.EN_PREPARACION);
     }
 
-    /** Despacha la tarea de mayor prioridad configurada en el adaptador. */
     public Optional<TareaPreparacion> despacharSiguiente() {
+        return despacharSiguiente(LocalDateTime.now());
+    }
+
+    public Optional<TareaPreparacion> despacharSiguiente(LocalDateTime fechaHoraInicio) {
+        if (fechaHoraInicio == null) {
+            throw new IllegalArgumentException("La fecha de inicio es obligatoria.");
+        }
         if (tareaEnProceso != null) {
             throw new ExcepcionDominio("Debe completarse la tarea actual antes de despachar otra.");
         }
@@ -57,13 +63,16 @@ public class ServicioPreparacion {
                         != EstadoApartamento.EN_PREPARACION) {
             throw new ExcepcionDominio("La cola contiene una tarea que no puede despacharse.");
         }
-        siguiente.iniciar();
+        siguiente.iniciar(fechaHoraInicio);
         tareaEnProceso = siguiente;
         return Optional.of(siguiente);
     }
 
-    /** Completa la tarea actual y deja el apartamento preparado. */
     public void completar(TareaPreparacion tarea) {
+        completar(tarea, LocalDateTime.now());
+    }
+
+    public void completar(TareaPreparacion tarea, LocalDateTime fechaHoraFinalizacion) {
         if (tarea == null) {
             throw new IllegalArgumentException("La tarea es obligatoria.");
         }
@@ -71,12 +80,11 @@ public class ServicioPreparacion {
                 || tarea.getEstado() != EstadoTareaPreparacion.EN_PROCESO) {
             throw new ExcepcionDominio("La tarea no es la que está en proceso.");
         }
-        tarea.completar();
+        tarea.completar(fechaHoraFinalizacion);
         tarea.getApartamento().cambiarEstadoOperativo(EstadoApartamento.PREPARADO);
         tareaEnProceso = null;
     }
 
-    /** Calcula y valida una ruta entre dos ubicaciones. */
     public String[] calcularRuta(String origen, String destino) {
         validarUbicacion(origen, "origen");
         validarUbicacion(destino, "destino");

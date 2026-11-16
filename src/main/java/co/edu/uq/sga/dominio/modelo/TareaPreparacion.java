@@ -13,6 +13,8 @@ public class TareaPreparacion {
     private final LocalDateTime fechaHoraCreacion;
     private final LocalDateTime fechaHoraLlegada;
     private EstadoTareaPreparacion estado;
+    private LocalDateTime fechaHoraInicio;
+    private LocalDateTime fechaHoraFinalizacion;
 
     public TareaPreparacion(String codigo, Apartamento apartamento,
             LocalDateTime fechaHoraCreacion, LocalDateTime fechaHoraLlegada) {
@@ -37,12 +39,9 @@ public class TareaPreparacion {
     public LocalDateTime getFechaHoraCreacion() { return fechaHoraCreacion; }
     public LocalDateTime getFechaHoraLlegada() { return fechaHoraLlegada; }
     public EstadoTareaPreparacion getEstado() { return estado; }
+    public LocalDateTime getFechaHoraInicio() { return fechaHoraInicio; }
+    public LocalDateTime getFechaHoraFinalizacion() { return fechaHoraFinalizacion; }
 
-    /**
-     * Ordena primero las tareas cuya llegada está programada para la fecha
-     * indicada. Entre ellas, prioriza la hora de llegada más temprana.
-     * Las demás quedan después y se ordenan cronológicamente por llegada.
-     */
     public static Comparator<TareaPreparacion> comparadorPorPrioridad(LocalDate fechaActual) {
         if (fechaActual == null) {
             throw new IllegalArgumentException("La fecha actual es obligatoria.");
@@ -50,25 +49,36 @@ public class TareaPreparacion {
         return Comparator
                 .comparing((TareaPreparacion tarea) ->
                         tarea.fechaHoraLlegada == null
-                                || !tarea.fechaHoraLlegada.toLocalDate()
-                                .equals(fechaActual))
-                .thenComparing(
-                    TareaPreparacion::getFechaHoraLlegada,
-                    Comparator.nullsLast(
-                            Comparator.<LocalDateTime>naturalOrder()
-                    )
-                )
+                                || !tarea.fechaHoraLlegada.toLocalDate().equals(fechaActual))
+                .thenComparing(TareaPreparacion::getFechaHoraLlegada,
+                        Comparator.nullsLast(Comparator.<LocalDateTime>naturalOrder()))
                 .thenComparing(TareaPreparacion::getFechaHoraCreacion)
                 .thenComparing(TareaPreparacion::getCodigo);
     }
 
     public void iniciar() {
+        iniciar(LocalDateTime.now());
+    }
+
+    public void iniciar(LocalDateTime fechaHora) {
         exigirEstado(EstadoTareaPreparacion.ENCOLADA);
+        if (fechaHora == null || fechaHora.isBefore(fechaHoraCreacion)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser nula ni anterior a la creación.");
+        }
+        fechaHoraInicio = fechaHora;
         estado = EstadoTareaPreparacion.EN_PROCESO;
     }
 
     public void completar() {
+        completar(LocalDateTime.now());
+    }
+
+    public void completar(LocalDateTime fechaHora) {
         exigirEstado(EstadoTareaPreparacion.EN_PROCESO);
+        if (fechaHora == null || fechaHora.isBefore(fechaHoraInicio)) {
+            throw new IllegalArgumentException("La finalización no puede ser anterior al inicio.");
+        }
+        fechaHoraFinalizacion = fechaHora;
         estado = EstadoTareaPreparacion.COMPLETADA;
     }
 
