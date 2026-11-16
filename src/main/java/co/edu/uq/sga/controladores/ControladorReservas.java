@@ -30,6 +30,24 @@ public final class ControladorReservas {
         vista.mostrarReservas(servicio.consultarTodas());
     }
 
+    public void registrarCheckIn(String folio) {
+        try {
+            servicio.registrarCheckIn(folio);
+            actualizar();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+        }
+    }
+
+    public void registrarCheckOut(String folio) {
+        try {
+            servicio.registrarCheckOut(folio);
+            actualizar();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+        }
+    }
+
     public boolean registrar(
             String folio,
             String documento,

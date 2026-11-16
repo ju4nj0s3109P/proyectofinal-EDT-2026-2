@@ -134,6 +134,22 @@ public final class ServicioPanelReservas {
         );
     }
 
+    public void registrarCheckIn(String folio) {
+        reservas.registrarCheckIn(buscarReserva(folio));
+    }
+
+    public void registrarCheckOut(String folio) {
+        reservas.registrarCheckOut(buscarReserva(folio));
+    }
+
+    private Reserva buscarReserva(String folio) {
+        return catalogo.buscarPorFolio(folio)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe la reserva " + folio
+                ))
+                .reserva();
+    }
+
     public ResumenReserva[] consultarTodas() {
         var registros = catalogo.listar();
         ResumenReserva[] resultado =

@@ -1,5 +1,6 @@
 package co.edu.uq.sga.interfaz;
 
+import co.edu.uq.sga.dominio.enums.EstadoReserva;
 import co.edu.uq.sga.controladores.ControladorReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
@@ -20,6 +21,8 @@ public final class PanelReservas extends VBox
 
     private final TableView<ResumenReserva> tabla = new TableView<>();
     private final ControladorReservas controlador;
+    private final Button checkIn = new Button("Registrar entrada");
+    private final Button checkOut = new Button("Registrar salida");
 
     public PanelReservas(ServicioPanelReservas servicio) {
         super(18);
@@ -48,7 +51,46 @@ public final class PanelReservas extends VBox
         agregarColumna("Estado", r -> r.estado().toString());
         agregarColumna("Personas", r -> String.valueOf(r.ocupantes()));
 
-        getChildren().addAll(nueva, tabla);
+        checkIn.getStyleClass().add("accion-principal");
+        checkOut.getStyleClass().add("accion-principal");
+
+        checkIn.setDisable(true);
+        checkOut.setDisable(true);
+
+        tabla.getSelectionModel().selectedItemProperty().addListener(
+                (observable, anterior, seleccionada) -> {
+                    checkIn.setDisable(
+                            seleccionada == null
+                                    || seleccionada.estado() != EstadoReserva.CONFIRMADA
+                    );
+
+                    checkOut.setDisable(
+                            seleccionada == null
+                                    || seleccionada.estado() != EstadoReserva.EN_CURSO
+                    );
+                }
+        );
+
+        checkIn.setOnAction(evento -> {
+            ResumenReserva seleccionada =
+                    tabla.getSelectionModel().getSelectedItem();
+
+            if (seleccionada != null) {
+                controlador.registrarCheckIn(seleccionada.folio());
+            }
+        });
+
+        checkOut.setOnAction(evento -> {
+            ResumenReserva seleccionada =
+                    tabla.getSelectionModel().getSelectedItem();
+
+            if (seleccionada != null) {
+                controlador.registrarCheckOut(seleccionada.folio());
+            }
+        });
+
+        HBox acciones = new HBox(12, nueva, checkIn, checkOut);
+        getChildren().addAll(acciones, tabla);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
         actualizar();
@@ -74,7 +116,24 @@ public final class PanelReservas extends VBox
 
     @Override
     public void mostrarReservas(ResumenReserva[] reservas) {
+        ResumenReserva seleccionada =
+                tabla.getSelectionModel().getSelectedItem();
+
+        String folio = seleccionada == null
+                ? null
+                : seleccionada.folio();
+
+        tabla.getSelectionModel().clearSelection();
         tabla.getItems().setAll(reservas);
+
+        if (folio != null) {
+            for (ResumenReserva reserva : reservas) {
+                if (folio.equals(reserva.folio())) {
+                    tabla.getSelectionModel().select(reserva);
+                    break;
+                }
+            }
+        }
     }
 
     private void abrirFormulario() {
@@ -248,7 +307,7 @@ public final class PanelReservas extends VBox
         Alert alerta = new Alert(Alert.AlertType.WARNING);
         alerta.initOwner(getScene().getWindow());
         alerta.setTitle("Reservas");
-        alerta.setHeaderText("No se pudo registrar la reserva");
+        alerta.setHeaderText("No se pudo realizar la operación");
         alerta.setContentText(mensaje);
         alerta.getDialogPane().setPrefWidth(550);
         alerta.showAndWait();
