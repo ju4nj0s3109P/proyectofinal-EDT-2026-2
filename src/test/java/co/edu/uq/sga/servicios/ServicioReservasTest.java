@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import co.edu.uq.sga.adaptadores.PilaDeshacerFoliosArbol;
+import co.edu.uq.sga.adaptadores.RepositorioFoliosArbol;
 import co.edu.uq.sga.dominio.contratos.IndiceReservas;
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoApartamento;
@@ -88,23 +90,32 @@ class ServicioReservasTest {
     }
 
     @Test
-    void cancelaYRegistraDevolucionSinBorrarElPago() {
-        ServicioReservas servicio = new ServicioReservas(new IndiceFalso());
+    void noCancelaHastaDevolverElDineroRecibidoYNoBorraElPago() {
+        IndiceFalso indice = new IndiceFalso();
+        ServicioReservas servicio = new ServicioReservas(indice);
+        ServicioFolios folios = new ServicioFolios(
+                new RepositorioFoliosArbol(), new PilaDeshacerFoliosArbol());
         Reserva reserva = reserva("R-4", CanalReserva.PORTAL, apartamento());
         servicio.registrarPortal(reserva);
-        Folio folio = new Folio("R-4");
-        folio.registrarMovimiento(movimiento("P-1", TipoMovimiento.PAGO, "500", null));
-        assertEquals(new BigDecimal("-500"), folio.calcularSaldo());
-        assertEquals(new BigDecimal("500"), servicio.calcularDevolucion(folio));
+        Folio folio = folios.abrir(reserva);
+        LocalDateTime ahora = LocalDateTime.of(2026, 10, 26, 9, 0);
+        folios.registrarCargo("R-4", new BigDecimal("1000"), "Estadía", ahora);
+        folios.registrarPago("R-4", new BigDecimal("500"), "Anticipo", ahora);
 
-        MovimientoFolio devolucion =
-                movimiento("D-1", TipoMovimiento.DEVOLUCION, "500", null);
-        servicio.cancelar(reserva, folio, devolucion);
+        assertEquals(new BigDecimal("500"), servicio.calcularDevolucion(folio),
+                "la devolución es el dinero recibido, no el saldo del folio");
+        assertThrows(IllegalStateException.class, () -> servicio.cancelar(reserva, folio),
+                "no se cancela mientras el alojamiento tenga plata del huésped");
+        assertTrue(indice.contiene(reserva));
+
+        assertEquals(new BigDecimal("500"), folios.cerrarPorCancelacion("R-4", ahora));
+        servicio.cancelar(reserva, folio);
 
         assertEquals(EstadoReserva.CANCELADA, reserva.getEstado());
-        assertEquals(2, folio.getMovimientos().length);
-        assertEquals(BigDecimal.ZERO, folio.calcularSaldo());
-        assertFalse(((IndiceFalso) getIndice(servicio)).contiene(reserva));
+        assertEquals(4, folio.getMovimientos().length,
+                "cargo, pago, reverso del cargo y devolución: nada se borró");
+        assertEquals(0, folio.calcularSaldo().signum());
+        assertFalse(indice.contiene(reserva));
     }
 
     @Test
@@ -170,7 +181,7 @@ class ServicioReservasTest {
         apartamento.cambiarEstadoOperativo(EstadoApartamento.PREPARADO);
         servicio.registrarCheckIn(reserva);
         assertThrows(IllegalStateException.class,
-                () -> servicio.cancelar(reserva, new Folio("R-6"), null));
+                () -> servicio.cancelar(reserva, new Folio("R-6")));
     }
 
     private Reserva reserva(String folio, CanalReserva canal, Apartamento apartamento) {
@@ -197,16 +208,6 @@ class ServicioReservasTest {
             String revertido) {
         return new MovimientoFolio(codigo, tipo, new BigDecimal(monto), "prueba",
                 java.time.LocalDateTime.of(2026, 3, 1, 12, 0), revertido);
-    }
-
-    private IndiceReservas getIndice(ServicioReservas servicio) {
-        try {
-            var campo = ServicioReservas.class.getDeclaredField("indice");
-            campo.setAccessible(true);
-            return (IndiceReservas) campo.get(servicio);
-        } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
-        }
     }
 
     private static final class IndiceFalso implements IndiceReservas {

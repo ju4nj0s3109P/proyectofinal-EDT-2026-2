@@ -16,6 +16,7 @@ import java.util.Optional;
 public class ServicioSolicitudesExternas {
     private static final String MOTIVO_SOLAPAMIENTO = "conflicto de disponibilidad";
     private static final String MOTIVO_FUERA_SERVICIO = "apartamento fuera de servicio";
+    private static final String MOTIVO_NO_PROCESABLE = "solicitud ya no procesable";
 
     private final ServicioReservas servicioReservas;
     private final ColaSolicitudesExternas cola;
@@ -60,9 +61,14 @@ public class ServicioSolicitudesExternas {
             return Optional.empty();
         }
         Reserva reserva = cola.desencolar();
-        if (reserva == null || reserva.getCanal() != CanalReserva.EXTERNA
-                || reserva.getEstado() != EstadoReserva.PENDIENTE) {
+        if (reserva == null) {
             throw new ExcepcionDominio("La cola contiene una solicitud externa inválida.");
+        }
+        // Si dejó de ser procesable mientras esperaba, se registra el rechazo en vez
+        // de perder la solicitud: ya salió de la cola y no vuelve.
+        if (reserva.getCanal() != CanalReserva.EXTERNA
+                || reserva.getEstado() != EstadoReserva.PENDIENTE) {
+            return Optional.of(rechazar(reserva, MOTIVO_NO_PROCESABLE, fechaHoraProceso, false));
         }
 
         String motivo = obtenerMotivoOperativo(reserva);
@@ -72,10 +78,18 @@ public class ServicioSolicitudesExternas {
         if (motivo == null) {
             motivo = MOTIVO_SOLAPAMIENTO;
         }
+        return Optional.of(rechazar(reserva, motivo, fechaHoraProceso, true));
+    }
+
+    /** Registra el conflicto y, si la solicitud seguía pendiente, la marca rechazada. */
+    private Resultado rechazar(Reserva reserva, String motivo, LocalDateTime fechaHoraProceso,
+            boolean seguiaPendiente) {
         ConflictoReserva conflicto = new ConflictoReserva(reserva, motivo, fechaHoraProceso);
         registroConflictos.registrar(conflicto);
-        reserva.rechazar();
-        return Optional.of(new Resultado(reserva, false, conflicto));
+        if (seguiaPendiente) {
+            reserva.rechazar();
+        }
+        return new Resultado(reserva, false, conflicto);
     }
 
     private String obtenerMotivoOperativo(Reserva reserva) {
