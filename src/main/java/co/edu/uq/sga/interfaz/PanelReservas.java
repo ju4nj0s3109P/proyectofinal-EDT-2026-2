@@ -200,6 +200,23 @@ public final class PanelReservas extends VBox
             ResumenReserva reserva,
             ServicioTarifas.Cotizacion cotizacion
     ) {
+        mostrarCotizacion(
+                getScene().getWindow(),
+                "Reserva " + reserva.folio()
+                        + " · Titular: " + reserva.titular(),
+                reserva.apartamentos(),
+                reserva.ocupantes(),
+                cotizacion
+        );
+    }
+
+    private void mostrarCotizacion(
+            javafx.stage.Window propietario,
+            String referencia,
+            String apartamentos,
+            int cantidadOcupantes,
+            ServicioTarifas.Cotizacion cotizacion
+    ) {
         NumberFormat moneda = NumberFormat.getCurrencyInstance(
                 Locale.forLanguageTag("es-CO")
         );
@@ -214,8 +231,8 @@ public final class PanelReservas extends VBox
 
         Label resumen = new Label(
                 cotizacion.cantidadNoches() + " noches · "
-                        + reserva.ocupantes() + " ocupantes · "
-                        + reserva.apartamentos()
+                        + cantidadOcupantes + " ocupantes · "
+                        + apartamentos
         );
         resumen.getStyleClass().add("texto-suave");
         resumen.setWrapText(true);
@@ -257,9 +274,9 @@ public final class PanelReservas extends VBox
         VBox contenido = new VBox(14, total, resumen, scroll, nota);
 
         Dialog<Void> dialogo = new Dialog<>();
-        dialogo.initOwner(getScene().getWindow());
-        dialogo.setTitle("Cotización " + reserva.folio());
-        dialogo.setHeaderText("Titular: " + reserva.titular());
+        dialogo.initOwner(propietario);
+        dialogo.setTitle("Cotización");
+        dialogo.setHeaderText(referencia);
         dialogo.getDialogPane().setContent(contenido);
         dialogo.getDialogPane().setPrefWidth(650);
         dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
@@ -396,9 +413,49 @@ public final class PanelReservas extends VBox
                 ButtonBar.ButtonData.OK_DONE
         );
 
-        dialogo.getDialogPane().getButtonTypes().addAll(
-                registrar, ButtonType.CANCEL
+        ButtonType cotizar = new ButtonType(
+                "Cotizar",
+                ButtonBar.ButtonData.OTHER
         );
+
+        dialogo.getDialogPane().getButtonTypes().addAll(
+                cotizar, registrar, ButtonType.CANCEL
+        );
+
+        Button botonCotizar = (Button)
+                dialogo.getDialogPane().lookupButton(cotizar);
+
+        botonCotizar.getStyleClass().add("accion-secundaria");
+
+        botonCotizar.addEventFilter(ActionEvent.ACTION, evento -> {
+            // Cotizar no debe cerrar el formulario.
+            evento.consume();
+            error.setText("");
+
+            String[] codigos = apartamentos.getText().split(",", -1);
+
+            for (int i = 0; i < codigos.length; i++) {
+                codigos[i] = codigos[i].trim();
+            }
+
+            DatosOcupante[] personas = ocupantes.getItems()
+                    .toArray(new DatosOcupante[0]);
+
+            controlador.cotizarBorrador(
+                    codigos,
+                    personas,
+                    entrada.getValue(),
+                    salida.getValue()
+            ).ifPresent(cotizacion ->
+                    mostrarCotizacion(
+                            dialogo.getDialogPane().getScene().getWindow(),
+                            "Consulta previa · No crea ni garantiza una reserva",
+                            String.join(", ", codigos),
+                            personas.length,
+                            cotizacion
+                    )
+            );
+        });
 
         Button botonRegistrar = (Button)
                 dialogo.getDialogPane().lookupButton(registrar);

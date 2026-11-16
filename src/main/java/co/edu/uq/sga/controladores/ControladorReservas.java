@@ -81,4 +81,20 @@ public final class ControladorReservas {
         actualizar();
         return true;
     }
+
+    public Optional<ServicioTarifas.Cotizacion> cotizarBorrador(
+            String[] apartamentos,
+            DatosOcupante[] ocupantes,
+            LocalDate entrada,
+            LocalDate salida
+    ) {
+        try {
+            return Optional.of(servicio.cotizarBorrador(
+                    apartamentos, ocupantes, entrada, salida
+            ));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+            return Optional.empty();
+        }
+    }
 }

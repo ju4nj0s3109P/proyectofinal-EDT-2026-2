@@ -147,6 +147,58 @@ public final class ServicioPanelReservas {
         folios.abrir(reserva);
     }
 
+    public ServicioTarifas.Cotizacion cotizarBorrador(
+            String[] codigos,
+            DatosOcupante[] datos,
+            LocalDate entrada,
+            LocalDate salida
+    ) {
+        if (codigos == null || codigos.length != 1) {
+            throw new IllegalArgumentException(
+                    "Por ahora, selecciona un solo apartamento para cotizar."
+            );
+        }
+
+        String codigo = codigos[0].trim();
+
+        var apartamento = apartamentos.buscarPorCodigo(codigo)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No existe el apartamento " + codigo
+                ));
+
+        if (datos == null || datos.length == 0) {
+            throw new IllegalArgumentException(
+                    "Agrega los ocupantes antes de cotizar."
+            );
+        }
+
+        if (datos.length > apartamento.getCapacidadMaxima()) {
+            throw new IllegalArgumentException(
+                    "Los ocupantes superan la capacidad del apartamento."
+            );
+        }
+
+        Estancia estancia = new Estancia(entrada, salida);
+        Ocupante[] ocupantes = new Ocupante[datos.length];
+
+        for (int i = 0; i < datos.length; i++) {
+            if (datos[i] == null) {
+                throw new IllegalArgumentException(
+                        "Hay un ocupante sin información."
+                );
+            }
+
+            ocupantes[i] = new Ocupante(
+                    datos[i].nombre(),
+                    datos[i].fechaNacimiento()
+            );
+
+            ocupantes[i].calcularEdadEn(entrada);
+        }
+
+        return tarifas.cotizar(apartamento, estancia, ocupantes);
+    }
+
     public ServicioTarifas.Cotizacion cotizarReserva(String codigo) {
         Reserva reserva = buscarReserva(codigo);
         var asignaciones = reserva.getAsignaciones();
