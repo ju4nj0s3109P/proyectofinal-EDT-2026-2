@@ -9,6 +9,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Line;
+import co.edu.uq.sga.dominio.enums.EstadoApartamento;
+import co.edu.uq.sga.servicios.ServicioApartamentos.ResumenApartamento;
 
 import java.text.DecimalFormat;
 import java.util.function.Consumer;
@@ -20,6 +22,18 @@ public final class PanelMapa extends Pane {
 
     private static final PseudoClass DESTINO =
             PseudoClass.getPseudoClass("destino");
+
+    private static final PseudoClass PREPARADO =
+            PseudoClass.getPseudoClass("preparado");
+
+    private static final PseudoClass OCUPADO =
+            PseudoClass.getPseudoClass("ocupado");
+
+    private static final PseudoClass PENDIENTE =
+            PseudoClass.getPseudoClass("pendiente");
+
+    private static final PseudoClass FUERA_SERVICIO =
+            PseudoClass.getPseudoClass("fuera-servicio");
 
     private final ServicioMapa.Ubicacion[] ubicaciones;
     private final ServicioMapa.Pasillo[] pasillos;
@@ -213,5 +227,66 @@ public final class PanelMapa extends Pane {
         }
 
         return false;
+    }
+
+    public void actualizarEstados(ResumenApartamento[] apartamentos) {
+        for (int i = 0; i < nodos.length; i++) {
+            Button nodo = nodos[i];
+
+            nodo.pseudoClassStateChanged(PREPARADO, false);
+            nodo.pseudoClassStateChanged(OCUPADO, false);
+            nodo.pseudoClassStateChanged(PENDIENTE, false);
+            nodo.pseudoClassStateChanged(FUERA_SERVICIO, false);
+
+            nodo.setTooltip(new Tooltip(
+                    ubicaciones[i].tipo().replace('_', ' ')
+            ));
+
+            nodo.setAccessibleText(
+                    ubicaciones[i].nombre()
+                            + ", calcular ruta desde recepción"
+            );
+        }
+
+        for (ResumenApartamento apartamento : apartamentos) {
+            int indice = indiceDe(apartamento.codigo());
+
+            if (indice < 0
+                    || !"APARTAMENTO".equals(ubicaciones[indice].tipo())) {
+                continue;
+            }
+
+            Button nodo = nodos[indice];
+
+            PseudoClass estilo = switch (apartamento.estado()) {
+                case PREPARADO -> PREPARADO;
+                case OCUPADO -> OCUPADO;
+                case PENDIENTE_PREPARACION, EN_PREPARACION -> PENDIENTE;
+                case FUERA_DE_SERVICIO -> FUERA_SERVICIO;
+            };
+
+            String estado = switch (apartamento.estado()) {
+                case PREPARADO -> "Preparado";
+                case OCUPADO -> "Ocupado";
+                case PENDIENTE_PREPARACION -> "Pendiente de preparación";
+                case EN_PREPARACION -> "En preparación";
+                case FUERA_DE_SERVICIO -> "Fuera de servicio";
+            };
+
+            nodo.pseudoClassStateChanged(estilo, true);
+
+            String detalle = apartamento.nombre() + "\nEstado: " + estado;
+
+            if (apartamento.estado() == EstadoApartamento.FUERA_DE_SERVICIO) {
+                detalle += "\nMotivo: " + apartamento.motivoFueraDeServicio();
+            }
+
+            nodo.setTooltip(new Tooltip(detalle));
+
+            nodo.setAccessibleText(
+                    apartamento.nombre() + ", " + estado
+                            + ", calcular ruta desde recepción"
+            );
+        }
     }
 }

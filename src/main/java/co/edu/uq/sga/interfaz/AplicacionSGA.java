@@ -1,9 +1,10 @@
 package co.edu.uq.sga.interfaz;
 
+import co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
 import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
-import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.persistencia.CargadorApartamentos;
+import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
 
 import javafx.application.Application;
@@ -68,10 +69,12 @@ public final class AplicacionSGA extends Application {
 
             var catalogo = new CargadorApartamentos().cargar(archivoApartamentos);
 
-            servicioApartamentos = new ServicioApartamentos(catalogo);
+            validarApartamentosDelMapa(catalogo, ubicaciones);
+
+            this.servicioApartamentos = new ServicioApartamentos(catalogo);
 
         } catch (IOException | IllegalStateException e) {
-            errorCarga = "No se pudieron cargar los datos iniciales.\\n\\n"
+            errorCarga = "No se pudieron cargar los datos iniciales.\n\n"
                     + e.getMessage();
         }
     }
@@ -83,6 +86,8 @@ public final class AplicacionSGA extends Application {
             alerta.setTitle("Error al iniciar el SGA");
             alerta.setHeaderText("No se pudo iniciar el alojamiento");
             alerta.setContentText(errorCarga);
+            alerta.getDialogPane().setPrefWidth(620);
+            alerta.setResizable(true);
             alerta.showAndWait();
 
             Platform.exit();
@@ -107,5 +112,42 @@ public final class AplicacionSGA extends Application {
         escenario.setScene(escena);
         escenario.show();
         escenario.centerOnScreen();
+
+
+    }
+    private void validarApartamentosDelMapa(
+            CatalogoApartamentosArbol catalogo,
+            ServicioMapa.Ubicacion[] ubicaciones
+    ) {
+        for (var apartamento : catalogo.listarPorCodigo()) {
+            boolean encontrado = false;
+
+            for (var ubicacion : ubicaciones) {
+                if (apartamento.getCodigo().equals(ubicacion.id())
+                        && "APARTAMENTO".equals(ubicacion.tipo())) {
+                    encontrado = true;
+                    break;
+                }
+            }
+
+            if (!encontrado) {
+                throw new IllegalStateException(
+                        "El apartamento " + apartamento.getCodigo()
+                                + " está en el CSV, pero no tiene un nodo "
+                                + "de tipo APARTAMENTO en el mapa."
+                );
+            }
+        }
+
+        for (var ubicacion : ubicaciones) {
+            if ("APARTAMENTO".equals(ubicacion.tipo())
+                    && catalogo.buscarPorCodigo(ubicacion.id()).isEmpty()) {
+                throw new IllegalStateException(
+                        "El nodo " + ubicacion.id()
+                                + " está en el mapa como apartamento, "
+                                + "pero no existe en apartamentos.csv."
+                );
+            }
+        }
     }
 }

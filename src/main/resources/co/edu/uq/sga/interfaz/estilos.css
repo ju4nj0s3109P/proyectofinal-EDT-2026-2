@@ -320,3 +320,32 @@
     -fx-background-color: #fbe3e3;
     -fx-text-fill: #a13030;
 }
+
+/* Estados operativos de los apartamentos del mapa */
+
+.nodo:preparado {
+    -fx-background-color: #e1f2e5;
+    -fx-text-fill: #24683a;
+}
+
+.nodo:ocupado {
+    -fx-background-color: #e2edfc;
+    -fx-text-fill: #245a96;
+}
+
+.nodo:pendiente {
+    -fx-background-color: #fff1c2;
+    -fx-text-fill: #765900;
+}
+
+.nodo:fuera-servicio {
+    -fx-background-color: #fbe3e3;
+    -fx-text-fill: #a13030;
+}
+
+/* La ruta se distingue por el borde sin perder el color del estado */
+
+.nodo:en-ruta {
+    -fx-border-color: #bd623e;
+    -fx-border-width: 3;
+}

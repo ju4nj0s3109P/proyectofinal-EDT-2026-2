@@ -6,6 +6,7 @@ import co.edu.uq.sga.servicios.ServicioMapa.Recorrido;
 import co.edu.uq.sga.servicios.ServicioMapa.Ubicacion;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
 
+
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -17,6 +18,7 @@ import java.text.DecimalFormat;
 public class VentanaPrincipal extends BorderPane implements ControladorMapa.VistaMapa {
 
     private final ControladorMapa controlador;
+    private final ServicioApartamentos servicioApartamentos;
 
     private final Label titulo =
             etiqueta("Mapa del edificio", "titulo");
@@ -51,6 +53,8 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
     public VentanaPrincipal(ServicioMapa servicio, ServicioApartamentos servicioApartamentos) {
         this.controlador = new ControladorMapa(servicio, this);
+        this.servicioApartamentos = servicioApartamentos;
+
 
         getStyleClass().add("ventana");
 
@@ -358,6 +362,11 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarVista(boolean mostrarMapa) {
+
+        if (mostrarMapa) {
+            mapa.actualizarEstados(servicioApartamentos.consultarTodos());
+        }
+
         vistaTablero.setVisible(false);
         vistaTablero.setManaged(false);
         botonTablero.setSelected(false);
