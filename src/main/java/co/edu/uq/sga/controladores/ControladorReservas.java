@@ -82,6 +82,39 @@ public final class ControladorReservas {
         return true;
     }
 
+    public boolean registrarPortal(
+            String folio,
+            String documento,
+            String[] apartamentos,
+            DatosOcupante[] ocupantes,
+            LocalDate entrada,
+            LocalDate salida,
+            LocalTime hora
+    ) {
+        try {
+            servicio.registrarPortal(
+                    folio, documento, apartamentos,
+                    ocupantes, entrada, salida, hora
+            );
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+            return false;
+        }
+
+        actualizar();
+        return true;
+    }
+
+    public void confirmarPortal(String folio) {
+        try {
+            servicio.confirmarPortal(folio);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+        }
+
+        actualizar();
+    }
+
     public Optional<ServicioPanelReservas.CotizacionReserva> cotizarBorrador(
             String[] apartamentos,
             DatosOcupante[] ocupantes,
