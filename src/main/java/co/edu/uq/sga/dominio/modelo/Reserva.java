@@ -34,6 +34,7 @@ public class Reserva implements Comparable<Reserva> {
         this.canal = canal;
         this.ocupantes = validarOcupantes(ocupantes);
         this.asignaciones = validarAsignaciones(asignaciones, this.ocupantes.length);
+        validarDistribucion(this.asignaciones, this.ocupantes);
         this.fechaHoraCreacion = fechaHoraCreacion;
         this.estado = EstadoReserva.PENDIENTE;
     }
@@ -117,5 +118,72 @@ public class Reserva implements Comparable<Reserva> {
             throw new CapacidadExcedidaException("La capacidad asignada no alcanza para todos los ocupantes.");
         }
         return copia;
+    }
+
+    private static void validarDistribucion(
+            AsignacionApartamento[] asignaciones,
+            Ocupante[] ocupantes
+    ) {
+        int distribuidas = 0;
+
+        for (var asignacion : asignaciones) {
+            if (asignacion.tieneDistribucion()) {
+                distribuidas++;
+            }
+        }
+
+        // Conserva las reservas anteriores, que no tenían distribución.
+        if (distribuidas == 0) {
+            return;
+        }
+
+        if (distribuidas != asignaciones.length) {
+            throw new IllegalArgumentException(
+                    "Debes distribuir los ocupantes en todos los apartamentos."
+            );
+        }
+
+        int[] apariciones = new int[ocupantes.length];
+
+        for (var asignacion : asignaciones) {
+            for (Ocupante asignado : asignacion.getOcupantes()) {
+                int posicion = -1;
+
+                for (int i = 0; i < ocupantes.length; i++) {
+                    if (asignado == ocupantes[i]) {
+                        if (posicion >= 0) {
+                            throw new IllegalArgumentException(
+                                    "La lista de la reserva repite al mismo ocupante."
+                            );
+                        }
+
+                        posicion = i;
+                    }
+                }
+
+                if (posicion < 0) {
+                    throw new IllegalArgumentException(
+                            "Un apartamento contiene un ocupante "
+                                    + "que no pertenece a la reserva."
+                    );
+                }
+
+                apariciones[posicion]++;
+
+                if (apariciones[posicion] > 1) {
+                    throw new IllegalArgumentException(
+                            "Un ocupante está asignado a varios apartamentos."
+                    );
+                }
+            }
+        }
+
+        for (int cantidad : apariciones) {
+            if (cantidad != 1) {
+                throw new IllegalArgumentException(
+                        "Todos los ocupantes deben tener un apartamento asignado."
+                );
+            }
+        }
     }
 }

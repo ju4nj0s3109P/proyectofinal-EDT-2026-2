@@ -5,15 +5,22 @@ import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
 import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
 import co.edu.uq.sga.adaptadores.CatalogoReservasArbol;
 import co.edu.uq.sga.adaptadores.IndiceReservasArbol;
+import co.edu.uq.sga.adaptadores.RepositorioFoliosArbol;
+import co.edu.uq.sga.adaptadores.PilaDeshacerFoliosArbol;
+import co.edu.uq.sga.adaptadores.ReservasDelIndice;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
 import co.edu.uq.sga.persistencia.CargadorApartamentos;
 import co.edu.uq.sga.persistencia.CargadorPreparaciones;
 import co.edu.uq.sga.persistencia.CargadorHuespedes;
+import co.edu.uq.sga.persistencia.CargadorTemporadas;
+import co.edu.uq.sga.servicios.ServicioTarifas;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
 import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
 import co.edu.uq.sga.servicios.ServicioReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
+import co.edu.uq.sga.servicios.ServicioFolios;
+import co.edu.uq.sga.servicios.ServicioDisponibilidad;
 
 import java.time.LocalDate;
 
@@ -35,6 +42,7 @@ public final class AplicacionSGA extends Application {
     private ServicioPanelPreparacion servicioPreparacion;
     private CatalogoHuespedesArbol catalogoHuespedes;
     private ServicioPanelReservas servicioPanelReservas;
+    private ServicioTarifas servicioTarifas;
 
 
     @Override
@@ -43,6 +51,10 @@ public final class AplicacionSGA extends Application {
         Path archivoPasillos = Path.of("data", "pasillos.csv");
 
         try {
+            servicioTarifas = new CargadorTemporadas().cargar(
+                    Path.of("data", "temporadas.csv")
+            );
+
             CargadorMapaEdificio cargador = new CargadorMapaEdificio();
             var mapa = cargador.cargar(archivoUbicaciones, archivoPasillos);
 
@@ -95,6 +107,9 @@ public final class AplicacionSGA extends Application {
             var indiceReservas = new IndiceReservasArbol();
             var catalogoReservas = new CatalogoReservasArbol();
             var servicioReservas = new ServicioReservas(indiceReservas);
+            var servicioDisponibilidad = new ServicioDisponibilidad(
+                    new ReservasDelIndice(indiceReservas)
+            );
 
             this.servicioPreparacion = new ServicioPanelPreparacion(
                     catalogo,
@@ -102,12 +117,20 @@ public final class AplicacionSGA extends Application {
                     LocalDate.now()
             );
 
+            var servicioFolios = new ServicioFolios(
+                    new RepositorioFoliosArbol(),
+                    new PilaDeshacerFoliosArbol()
+            );
+
             servicioPanelReservas = new ServicioPanelReservas(
                     catalogo,
                     catalogoHuespedes,
                     catalogoReservas,
                     servicioReservas,
-                    servicioPreparacion
+                    servicioPreparacion,
+                    servicioFolios,
+                    servicioTarifas,
+                    servicioDisponibilidad
             );
 
             var tareasIniciales = new CargadorPreparaciones().cargar(
