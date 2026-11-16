@@ -6,6 +6,7 @@ import co.edu.uq.sga.dominio.modelo.Empleado;
 import co.edu.uq.sga.servicios.ServicioEmpleados;
 import co.edu.uq.sga.servicios.ServicioTurnosRecepcion;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.scene.layout.GridPane;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
