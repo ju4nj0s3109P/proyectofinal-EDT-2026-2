@@ -38,7 +38,7 @@ Una tarea recorre los estados Encolada → En proceso → Completada. Al ingresa
 
 ## Estructuras propias y capa de adaptadores
 1. **Paquetes:** `estructuras.lineales` (ListaEnlazada doble, Pila, Cola, ColaPrioridad, ListaCircular, Conjunto), `estructuras.arboles` (ArbolBinarioBusqueda, DiccionarioArbol), `estructuras.grafos` (Grafo, Ruta) y `estructuras.excepciones`. Ninguna clase de `estructuras` importa el dominio.
-2. **Adaptadores:** los puertos de `dominio.contratos` se implementan en `co.edu.uq.sga.adaptadores` (`IndiceReservasArbol`, `ColaSolicitudesExternasEnCola`, `ColaPreparacionesEnCola`, `ColaPreparacionesPorPrioridad`, `CalculadorRutasGrafo`). Es la única capa que conoce a la vez el dominio y las estructuras.
+2. **Adaptadores:** los puertos de `dominio.contratos` se implementan en `co.edu.uq.sga.adaptadores` (`IndiceReservasArbol`, `ColaSolicitudesExternasEnCola`, `ColaPreparacionesEnCola`, `ColaPreparacionesPorPrioridad`, `CalculadorRutasGrafo`, `RepositorioFoliosArbol`, `PilaDeshacerFoliosArbol`). Es la única capa que conoce a la vez el dominio y las estructuras.
 3. **Vacío:** operar sobre una estructura vacía lanza `EstructuraVaciaException` (no comprobada, hereda de `NoSuchElementException`). Los argumentos nulos lanzan `IllegalArgumentException`.
 4. **Árbol binario:** sigue el orden natural (`Comparable`) y no admite duplicados (`insertar` devuelve `false`). Ofrece `rango`, `anterior` y `siguiente` recursivos para detectar solapamientos sin recorrer todo el árbol.
 5. **Diccionario:** `DiccionarioArbol<K,V>` sobre el árbol reemplaza a `HashMap`/`TreeMap` cuando se necesita clave → valor.
