@@ -4,14 +4,12 @@ import co.edu.uq.sga.dominio.contratos.IndiceReservas;
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoApartamento;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
-import co.edu.uq.sga.dominio.enums.TipoMovimiento;
 import co.edu.uq.sga.dominio.excepciones.AnticipoInsuficienteException;
 import co.edu.uq.sga.dominio.excepciones.ConflictoDisponibilidadException;
 import co.edu.uq.sga.dominio.excepciones.ExcepcionDominio;
 import co.edu.uq.sga.dominio.modelo.Apartamento;
 import co.edu.uq.sga.dominio.modelo.AsignacionApartamento;
 import co.edu.uq.sga.dominio.modelo.Folio;
-import co.edu.uq.sga.dominio.modelo.MovimientoFolio;
 import co.edu.uq.sga.dominio.modelo.Reserva;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,6 +17,15 @@ import java.time.LocalDateTime;
 /** Coordina el ciclo de vida de una reserva con el índice y el folio. */
 public class ServicioReservas {
     private static final BigDecimal PORCENTAJE_ANTICIPO = new BigDecimal("0.30");
+    private static final int HORAS_PARA_VENCER = 24;
+
+    /** Momento en que vence una reserva pendiente del portal. */
+    public static LocalDateTime vencimientoDe(Reserva reserva) {
+        if (reserva == null) {
+            throw new IllegalArgumentException("La reserva es obligatoria.");
+        }
+        return reserva.getFechaHoraCreacion().plusHours(HORAS_PARA_VENCER);
+    }
 
     private final IndiceReservas indice;
 
@@ -82,7 +89,7 @@ public class ServicioReservas {
             throw new IllegalArgumentException("La cotización debe ser no negativa.");
         }
 
-        BigDecimal anticipo = folio.calcularSaldo().negate().max(BigDecimal.ZERO);
+        BigDecimal anticipo = ServicioFolios.totalPagado(folio);
         BigDecimal minimo = totalCotizacion.multiply(PORCENTAJE_ANTICIPO);
         if (anticipo.compareTo(minimo) < 0) {
             throw new AnticipoInsuficienteException("El anticipo no alcanza el 30 % de la cotización.");
@@ -90,42 +97,30 @@ public class ServicioReservas {
         reserva.confirmar();
     }
 
-    /** Calcula el saldo a favor que se devolvería al cancelar. */
+    /** Dinero que se le devolvería al huésped si cancela ahora. */
     public BigDecimal calcularDevolucion(Folio folio) {
-        if (folio == null) {
-            throw new IllegalArgumentException("El folio es obligatorio.");
-        }
-        return folio.calcularSaldo().negate().max(BigDecimal.ZERO);
+        return ServicioFolios.totalPagado(folio);
     }
 
     /**
-     * Cancela antes del check-in. Si hay saldo a favor exige registrar exactamente
-     * una devolución; las devoluciones no borran los pagos originales.
+     * Cancela antes del check-in. El dinero recibido debe estar devuelto antes,
+     * con {@link ServicioFolios#cerrarPorCancelacion}: el folio es el único que
+     * registra movimientos, así que aquí solo se comprueba.
      */
-    public void cancelar(Reserva reserva, Folio folio, MovimientoFolio devolucion) {
+    public void cancelar(Reserva reserva, Folio folio) {
         validarReservaRegistrada(reserva, null, null);
         if (reserva.getEstado() != EstadoReserva.PENDIENTE
                 && reserva.getEstado() != EstadoReserva.CONFIRMADA) {
             throw new ExcepcionDominio("Solo se puede cancelar antes del check-in.");
         }
         validarFolio(reserva, folio);
-
-        BigDecimal valorDevolucion = calcularDevolucion(folio);
-        if (valorDevolucion.signum() == 0) {
-            if (devolucion != null) {
-                throw new IllegalArgumentException("No se debe registrar una devolución por cero.");
-            }
-        } else if (devolucion == null
-                || devolucion.getTipo() != TipoMovimiento.DEVOLUCION
-                || devolucion.getMonto().compareTo(valorDevolucion) != 0
-                || devolucion.getCodigoMovimientoReversado() != null) {
-            throw new IllegalArgumentException(
-                    "La devolución debe corresponder al saldo a favor completo.");
+        BigDecimal pendienteDeDevolver = calcularDevolucion(folio);
+        if (pendienteDeDevolver.signum() != 0) {
+            throw new ExcepcionDominio(
+                    "Antes de cancelar hay que devolver los " + pendienteDeDevolver
+                            + " recibidos del huésped.");
         }
 
-        if (devolucion != null) {
-            folio.registrarMovimiento(devolucion);
-        }
         retirarDelIndice(reserva);
         reserva.cancelar();
     }
@@ -144,7 +139,7 @@ public class ServicioReservas {
         if (reserva.getEstado() != EstadoReserva.PENDIENTE) {
             throw new ExcepcionDominio("Solo puede expirar una reserva pendiente.");
         }
-        if (ahora.isBefore(reserva.getFechaHoraCreacion().plusHours(24))) return false;
+        if (ahora.isBefore(vencimientoDe(reserva))) return false;
         validarReservaRegistrada(reserva, CanalReserva.PORTAL, EstadoReserva.PENDIENTE);
         retirarDelIndice(reserva);
         reserva.cancelar();
@@ -161,15 +156,15 @@ public class ServicioReservas {
     /** Inicia la estancia solo si todos los apartamentos están preparados. */
     public void registrarCheckIn(Reserva reserva) {
         validarReservaRegistrada(reserva, null, EstadoReserva.CONFIRMADA);
-        Asignaciones asignaciones = obtenerAsignaciones(reserva);
-        for (Apartamento apartamento : asignaciones.apartamentos()) {
+        Apartamento[] apartamentos = apartamentosDe(reserva);
+        for (Apartamento apartamento : apartamentos) {
             if (apartamento.getEstadoOperativo() != EstadoApartamento.PREPARADO) {
                 throw new ExcepcionDominio(
                         "Todos los apartamentos asignados deben estar preparados.");
             }
         }
         reserva.iniciar();
-        for (Apartamento apartamento : asignaciones.apartamentos()) {
+        for (Apartamento apartamento : apartamentos) {
             apartamento.cambiarEstadoOperativo(EstadoApartamento.OCUPADO);
         }
     }
@@ -177,8 +172,8 @@ public class ServicioReservas {
     /** Finaliza la estancia y libera los apartamentos para preparación. */
     public void registrarCheckOut(Reserva reserva) {
         validarReservaRegistrada(reserva, null, EstadoReserva.EN_CURSO);
-        Asignaciones asignaciones = obtenerAsignaciones(reserva);
-        for (Apartamento apartamento : asignaciones.apartamentos()) {
+        Apartamento[] apartamentos = apartamentosDe(reserva);
+        for (Apartamento apartamento : apartamentos) {
             if (apartamento.getEstadoOperativo() != EstadoApartamento.OCUPADO) {
                 throw new ExcepcionDominio(
                         "Todos los apartamentos asignados deben estar ocupados.");
@@ -186,7 +181,7 @@ public class ServicioReservas {
         }
         retirarDelIndice(reserva);
         reserva.finalizar();
-        for (Apartamento apartamento : asignaciones.apartamentos()) {
+        for (Apartamento apartamento : apartamentos) {
             apartamento.cambiarEstadoOperativo(EstadoApartamento.PENDIENTE_PREPARACION);
         }
     }
@@ -205,8 +200,7 @@ public class ServicioReservas {
     }
 
     private void validarApartamentosDisponiblesOperativamente(Reserva reserva) {
-        for (co.edu.uq.sga.dominio.modelo.AsignacionApartamento asignacion
-                : reserva.getAsignaciones()) {
+        for (AsignacionApartamento asignacion : reserva.getAsignaciones()) {
             if (asignacion.getApartamento().getEstadoOperativo()
                     == EstadoApartamento.FUERA_DE_SERVICIO) {
                 throw new ExcepcionDominio(
@@ -252,15 +246,12 @@ public class ServicioReservas {
         }
     }
 
-    private Asignaciones obtenerAsignaciones(Reserva reserva) {
-        co.edu.uq.sga.dominio.modelo.AsignacionApartamento[] asignaciones =
-                reserva.getAsignaciones();
+    private static Apartamento[] apartamentosDe(Reserva reserva) {
+        AsignacionApartamento[] asignaciones = reserva.getAsignaciones();
         Apartamento[] apartamentos = new Apartamento[asignaciones.length];
         for (int i = 0; i < asignaciones.length; i++) {
             apartamentos[i] = asignaciones[i].getApartamento();
         }
-        return new Asignaciones(apartamentos);
+        return apartamentos;
     }
-
-    private record Asignaciones(Apartamento[] apartamentos) {}
 }
