@@ -2,6 +2,7 @@ package co.edu.uq.sga.dominio.modelo;
 
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
+import co.edu.uq.sga.dominio.excepciones.CapacidadExcedidaException;
 import co.edu.uq.sga.dominio.excepciones.EstadoReservaException;
 import java.time.LocalDateTime;
 
@@ -21,17 +22,13 @@ public class Reserva implements Comparable<Reserva> {
         this(folio, titular, ocupantes, estancia, canal, asignaciones, LocalDateTime.now());
     }
 
-    /** Constructor con hora explícita para carga de datos y pruebas deterministas. */
     public Reserva(String folio, Huesped titular, Ocupante[] ocupantes, Estancia estancia,
-            CanalReserva canal, AsignacionApartamento[] asignaciones,
-            LocalDateTime fechaHoraCreacion) {
+            CanalReserva canal, AsignacionApartamento[] asignaciones, LocalDateTime fechaHoraCreacion) {
         this.folio = validarTexto(folio, "folio");
         if (titular == null) throw new IllegalArgumentException("El huésped titular es obligatorio.");
         if (estancia == null) throw new IllegalArgumentException("La estancia es obligatoria.");
         if (canal == null) throw new IllegalArgumentException("El canal de reserva es obligatorio.");
-        if (fechaHoraCreacion == null) {
-            throw new IllegalArgumentException("La fecha y hora de creación son obligatorias.");
-        }
+        if (fechaHoraCreacion == null) throw new IllegalArgumentException("La fecha y hora de creación son obligatorias.");
         this.titular = titular;
         this.estancia = estancia;
         this.canal = canal;
@@ -41,8 +38,7 @@ public class Reserva implements Comparable<Reserva> {
         this.estado = EstadoReserva.PENDIENTE;
     }
 
-    @Override
-    public int compareTo(Reserva otra) {
+    @Override public int compareTo(Reserva otra) {
         return estancia.getFechaEntrada().compareTo(otra.estancia.getFechaEntrada());
     }
 
@@ -59,46 +55,36 @@ public class Reserva implements Comparable<Reserva> {
         exigirEstado(EstadoReserva.PENDIENTE, "Solo una reserva pendiente puede confirmarse.");
         estado = EstadoReserva.CONFIRMADA;
     }
-
     public void iniciar() {
         exigirEstado(EstadoReserva.CONFIRMADA, "Solo una reserva confirmada puede iniciar.");
         estado = EstadoReserva.EN_CURSO;
     }
-
     public void finalizar() {
         exigirEstado(EstadoReserva.EN_CURSO, "Solo una reserva en curso puede finalizarse.");
         estado = EstadoReserva.FINALIZADA;
     }
-
     public void cancelar() {
         if (estado != EstadoReserva.PENDIENTE && estado != EstadoReserva.CONFIRMADA) {
             throw new EstadoReservaException("Solo se pueden cancelar reservas pendientes o confirmadas.");
         }
         estado = EstadoReserva.CANCELADA;
     }
-
     public void rechazar() {
         exigirEstado(EstadoReserva.PENDIENTE, "Solo una reserva pendiente puede rechazarse.");
         estado = EstadoReserva.RECHAZADA;
     }
-
     public void marcarNoShow() {
-        exigirEstado(EstadoReserva.CONFIRMADA,
-                "Solo una reserva confirmada puede marcarse como no-show.");
+        exigirEstado(EstadoReserva.CONFIRMADA, "Solo una reserva confirmada puede marcarse como no-show.");
         estado = EstadoReserva.NO_SHOW;
     }
 
     private void exigirEstado(EstadoReserva esperado, String mensaje) {
         if (estado != esperado) throw new EstadoReservaException(mensaje);
     }
-
-    private static String validarTexto(String valor, String nombreCampo) {
-        if (valor == null || valor.isBlank()) {
-            throw new IllegalArgumentException(nombreCampo + " es obligatorio.");
-        }
+    private static String validarTexto(String valor, String campo) {
+        if (valor == null || valor.isBlank()) throw new IllegalArgumentException(campo + " es obligatorio.");
         return valor.trim();
     }
-
     private static Ocupante[] validarOcupantes(Ocupante[] ocupantes) {
         if (ocupantes == null || ocupantes.length == 0) {
             throw new IllegalArgumentException("La reserva debe tener al menos un ocupante.");
@@ -109,7 +95,6 @@ public class Reserva implements Comparable<Reserva> {
         }
         return copia;
     }
-
     private static AsignacionApartamento[] validarAsignaciones(
             AsignacionApartamento[] asignaciones, int numeroOcupantes) {
         if (asignaciones == null || asignaciones.length == 0) {
@@ -123,15 +108,13 @@ public class Reserva implements Comparable<Reserva> {
             Apartamento apartamento = asignacion.getApartamento();
             capacidadTotal += apartamento.getCapacidadMaxima();
             for (int j = 0; j < i; j++) {
-                String codigoAnterior = copia[j].getApartamento().getCodigo();
-                if (codigoAnterior.equals(apartamento.getCodigo())) {
-                    throw new IllegalArgumentException(
-                            "Un apartamento no puede asignarse más de una vez a la reserva.");
+                if (copia[j].getApartamento().getCodigo().equals(apartamento.getCodigo())) {
+                    throw new IllegalArgumentException("Un apartamento no puede asignarse más de una vez a la reserva.");
                 }
             }
         }
         if (capacidadTotal < numeroOcupantes) {
-            throw new IllegalArgumentException("La capacidad asignada no alcanza para todos los ocupantes.");
+            throw new CapacidadExcedidaException("La capacidad asignada no alcanza para todos los ocupantes.");
         }
         return copia;
     }
