@@ -168,9 +168,16 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonTablero.setId("nav-tablero");
         botonReservas.setToggleGroup(grupo);
         botonReservas.setId("nav-reservas");
+        botonAdministracion.setToggleGroup(grupo);
+        botonPortal.setToggleGroup(grupo);
+        botonCalendario.setToggleGroup(grupo);
+        botonEstadisticas.setToggleGroup(grupo);
+        botonFinanzas.setToggleGroup(grupo);
 
         for (ToggleButton boton :
-                new ToggleButton[]{botonTablero, botonReservas, botonMapa, botonUbicaciones, botonPreparacion}) {
+                new ToggleButton[]{botonTablero, botonReservas, botonMapa, botonUbicaciones,
+                        botonPreparacion, botonAdministracion, botonPortal,
+                        botonCalendario, botonEstadisticas, botonFinanzas}) {
             boton.getStyleClass().add("navegacion");
             boton.setMaxWidth(Double.MAX_VALUE);
             boton.setAlignment(Pos.CENTER_LEFT);
@@ -181,10 +188,15 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonUbicaciones.setOnAction(evento -> mostrarVista(false));
         botonPreparacion.setOnAction(evento -> mostrarPreparacion());
         botonReservas.setOnAction(evento -> mostrarReservas());
-        botonReservas.setToggleGroup(grupo);
+        botonAdministracion.setOnAction(evento -> mostrarComplementaria(vistaAdministracion, botonAdministracion, "Administración"));
+        botonPortal.setOnAction(evento -> mostrarComplementaria(vistaPortal, botonPortal, "Portal de huéspedes"));
+        botonCalendario.setOnAction(evento -> mostrarComplementaria(vistaCalendario, botonCalendario, "Calendario de ocupación"));
+        botonEstadisticas.setOnAction(evento -> mostrarComplementaria(vistaEstadisticas, botonEstadisticas, "Estadísticas"));
+        botonFinanzas.setOnAction(evento -> mostrarComplementaria(vistaFinanzas, botonFinanzas, "Gestión financiera"));
 
-
-        VBox menu = new VBox(8,botonTablero, botonReservas, botonMapa, botonUbicaciones, botonPreparacion);
+        VBox menu = new VBox(8, botonTablero, botonReservas, botonMapa, botonUbicaciones,
+                botonPreparacion, botonPortal, botonCalendario, botonFinanzas,
+                botonEstadisticas, botonAdministracion);
 
         Region espacio = new Region();
         VBox.setVgrow(espacio, Priority.ALWAYS);
@@ -422,7 +434,7 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarVista(boolean mostrarMapa) {
-
+        ocultarComplementarias();
         vistaReservas.setVisible(false);
         vistaReservas.setManaged(false);
         botonReservas.setSelected(false);
@@ -460,7 +472,7 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarTablero() {
-
+        ocultarComplementarias();
         vistaReservas.setVisible(false);
         vistaReservas.setManaged(false);
         botonReservas.setSelected(false);
@@ -495,7 +507,7 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarPreparacion() {
-
+        ocultarComplementarias();
         vistaReservas.setVisible(false);
         vistaReservas.setManaged(false);
 
@@ -661,6 +673,14 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonReservas.setSelected(true);
 
         titulo.setText("Reservas del alojamiento");
+    }
+
+    private void ocultarComplementarias() {
+        for (Node vista : new Node[]{vistaAdministracion, vistaPortal, vistaCalendario,
+                vistaEstadisticas, vistaFinanzas}) {
+            vista.setVisible(false);
+            vista.setManaged(false);
+        }
     }
 
     private void mostrarComplementaria(Node seleccionada, ToggleButton boton, String encabezado) {
