@@ -160,7 +160,10 @@ class AdaptadoresTest {
         a101.cambiarEstadoOperativo(EstadoApartamento.PENDIENTE_PREPARACION);
         servicio.encolar(tarea("T-1", a101, LocalDateTime.of(2026, 12, 10, 10, 0)));
 
-        TareaPreparacion tarea = servicio.despacharSiguiente().orElseThrow();
+        // La ruta mínima hacia A-101 pasa por A-102; atravesarlo no altera
+        // el orden en que se despachan las tareas de preparación.
+        TareaPreparacion tarea = servicio.despacharSiguiente(
+                LocalDateTime.of(2026, 12, 1, 8, 1)).orElseThrow();
         assertEquals("A-101", tarea.getApartamento().getCodigo());
         assertArrayEquals(new String[] {"REC", "ESC", "A-101"}, servicio.calcularRuta("REC", "A-101"));
         servicio.completar(tarea);
