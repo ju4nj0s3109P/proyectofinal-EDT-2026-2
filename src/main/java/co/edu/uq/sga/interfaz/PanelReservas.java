@@ -334,11 +334,97 @@ public final class PanelReservas extends VBox
             @Override
             protected void updateItem(DatosOcupante dato, boolean vacio) {
                 super.updateItem(dato, vacio);
-                setText(vacio || dato == null
-                        ? null
-                        : dato.nombre() + " · " + dato.fechaNacimiento());
+
+                if (vacio || dato == null) {
+                    setText(null);
+                    return;
+                }
+
+                String destino = dato.apartamento() == null
+                        || dato.apartamento().isBlank()
+                        ? "Sin asignar"
+                        : dato.apartamento();
+
+                setText(
+                        dato.nombre() + " · " + dato.fechaNacimiento()
+                                + " · Apartamento: " + destino
+                );
             }
         });
+
+        ComboBox<String> apartamentoOcupante = new ComboBox<>();
+        apartamentoOcupante.setPromptText("Apartamento del ocupante");
+        apartamentoOcupante.setPrefWidth(230);
+
+        Runnable actualizarOpciones = () -> {
+            String anterior = apartamentoOcupante.getValue();
+            apartamentoOcupante.getItems().clear();
+
+            for (String valor : apartamentos.getText().split(",", -1)) {
+                String codigo = valor.trim();
+
+                if (!codigo.isEmpty()
+                        && !apartamentoOcupante.getItems().contains(codigo)) {
+                    apartamentoOcupante.getItems().add(codigo);
+                }
+            }
+
+            if (anterior != null
+                    && apartamentoOcupante.getItems().contains(anterior)) {
+                apartamentoOcupante.setValue(anterior);
+            } else {
+                apartamentoOcupante.setValue(null);
+            }
+        };
+
+        apartamentos.textProperty().addListener(
+                (observable, anterior, nuevo) -> actualizarOpciones.run()
+        );
+
+        actualizarOpciones.run();
+
+        Button asignar = new Button("Asignar al seleccionado");
+        asignar.getStyleClass().add("accion-secundaria");
+
+        asignar.disableProperty().bind(
+                ocupantes.getSelectionModel().selectedItemProperty().isNull()
+                        .or(apartamentoOcupante.valueProperty().isNull())
+        );
+
+        asignar.setOnAction(evento -> {
+            int indice = ocupantes.getSelectionModel().getSelectedIndex();
+            String destino = apartamentoOcupante.getValue();
+
+            if (indice < 0 || destino == null) {
+                return;
+            }
+
+            DatosOcupante persona = ocupantes.getItems().get(indice);
+
+            ocupantes.getItems().set(
+                    indice,
+                    new DatosOcupante(
+                            persona.nombre(),
+                            persona.fechaNacimiento(),
+                            destino
+                    )
+            );
+
+            ocupantes.getSelectionModel().select(indice);
+        });
+
+        Label avisoDistribucion = new Label(
+                "Para varios apartamentos: selecciona cada ocupante, "
+                        + "elige su apartamento y pulsa Asignar."
+        );
+        avisoDistribucion.setWrapText(true);
+        avisoDistribucion.getStyleClass().add("texto-suave");
+
+        VBox distribucion = new VBox(
+                8,
+                avisoDistribucion,
+                new FlowPane(10, 10, apartamentoOcupante, asignar)
+        );
 
         Label error = new Label();
         error.setWrapText(true);
@@ -593,6 +679,7 @@ public final class PanelReservas extends VBox
                 new HBox(10, agregar, quitar),
                 ocupantes,
                 busqueda,
+                distribucion,
                 error
         );
 

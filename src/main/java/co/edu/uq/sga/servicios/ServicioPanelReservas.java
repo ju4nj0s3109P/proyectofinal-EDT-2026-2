@@ -21,8 +21,13 @@ public final class ServicioPanelReservas {
 
     public record DatosOcupante(
             String nombre,
-            LocalDate fechaNacimiento
-    ) {}
+            LocalDate fechaNacimiento,
+            String apartamento
+    ) {
+        public DatosOcupante(String nombre, LocalDate fechaNacimiento) {
+            this(nombre, fechaNacimiento, null);
+        }
+    }
 
     public record ResumenReserva(
             String folio,
@@ -115,20 +120,6 @@ public final class ServicioPanelReservas {
 
         Estancia estancia = new Estancia(entrada, salida);
 
-        AsignacionApartamento[] asignaciones =
-                new AsignacionApartamento[codigosApartamentos.length];
-
-        for (int i = 0; i < codigosApartamentos.length; i++) {
-            String codigo = codigosApartamentos[i];
-
-            var apartamento = apartamentos.buscarPorCodigo(codigo)
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "No existe el apartamento " + codigo
-                    ));
-
-            asignaciones[i] = new AsignacionApartamento(apartamento);
-        }
-
         Ocupante[] ocupantes = new Ocupante[datosOcupantes.length];
 
         for (int i = 0; i < datosOcupantes.length; i++) {
@@ -147,6 +138,12 @@ public final class ServicioPanelReservas {
 
             ocupantes[i].calcularEdadEn(entrada);
         }
+
+        AsignacionApartamento[] asignaciones = construirAsignaciones(
+                codigosApartamentos,
+                datosOcupantes,
+                ocupantes
+        );
 
         Reserva reserva = new Reserva(
                 folio,
@@ -284,7 +281,13 @@ public final class ServicioPanelReservas {
             ocupantes[i].calcularEdadEn(entrada);
         }
 
-        return tarifas.cotizar(apartamento, estancia, ocupantes);
+        var asignaciones = construirAsignaciones(codigos, datos, ocupantes);
+
+        return tarifas.cotizar(
+                asignaciones[0].getApartamento(),
+                estancia,
+                asignaciones[0].getOcupantes()
+        );
     }
 
     public ServicioTarifas.Cotizacion cotizarReserva(String codigo) {
@@ -425,6 +428,106 @@ public final class ServicioPanelReservas {
                     reserva.getEstado(),
                     reserva.getOcupantes().length
             );
+        }
+
+        return resultado;
+    }
+
+    private AsignacionApartamento[] construirAsignaciones(
+            String[] codigos,
+            DatosOcupante[] datos,
+            Ocupante[] ocupantes
+    ) {
+        if (codigos == null || codigos.length == 0) {
+            throw new IllegalArgumentException(
+                    "Selecciona al menos un apartamento."
+            );
+        }
+
+        if (datos == null || ocupantes == null
+                || datos.length == 0 || datos.length != ocupantes.length) {
+            throw new IllegalArgumentException(
+                    "La información de los ocupantes está incompleta."
+            );
+        }
+
+        AsignacionApartamento[] resultado =
+                new AsignacionApartamento[codigos.length];
+
+        boolean[] asignados = new boolean[ocupantes.length];
+
+        for (int i = 0; i < codigos.length; i++) {
+            if (codigos[i] == null || codigos[i].isBlank()) {
+                throw new IllegalArgumentException(
+                        "Hay un código de apartamento vacío."
+                );
+            }
+
+            String codigo = codigos[i].trim();
+
+            for (int j = 0; j < i; j++) {
+                if (codigo.equals(codigos[j].trim())) {
+                    throw new IllegalArgumentException(
+                            "El apartamento " + codigo + " está repetido."
+                    );
+                }
+            }
+
+            var apartamento = apartamentos.buscarPorCodigo(codigo)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "No existe el apartamento " + codigo
+                    ));
+
+            Ocupante[] temporal = new Ocupante[ocupantes.length];
+            int cantidad = 0;
+
+            for (int j = 0; j < datos.length; j++) {
+                if (datos[j] == null || ocupantes[j] == null) {
+                    throw new IllegalArgumentException(
+                            "Hay un ocupante sin información."
+                    );
+                }
+
+                String destino = datos[j].apartamento();
+
+                // Con un solo apartamento, no hace falta distribuir manualmente.
+                if (destino == null || destino.isBlank()) {
+                    if (codigos.length == 1) {
+                        destino = codigo;
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Asigna un apartamento a " + datos[j].nombre() + "."
+                        );
+                    }
+                }
+
+                if (codigo.equals(destino.trim())) {
+                    temporal[cantidad++] = ocupantes[j];
+                    asignados[j] = true;
+                }
+            }
+
+            if (cantidad == 0) {
+                throw new IllegalArgumentException(
+                        "El apartamento " + codigo + " no tiene ocupantes. "
+                                + "Asigna personas o retíralo de la selección."
+                );
+            }
+
+            Ocupante[] grupo = new Ocupante[cantidad];
+            System.arraycopy(temporal, 0, grupo, 0, cantidad);
+
+            // El modelo valida la capacidad individual.
+            resultado[i] = new AsignacionApartamento(apartamento, grupo);
+        }
+
+        for (int i = 0; i < asignados.length; i++) {
+            if (!asignados[i]) {
+                throw new IllegalArgumentException(
+                        "El apartamento asignado a " + datos[i].nombre()
+                                + " no está entre los seleccionados."
+                );
+            }
         }
 
         return resultado;

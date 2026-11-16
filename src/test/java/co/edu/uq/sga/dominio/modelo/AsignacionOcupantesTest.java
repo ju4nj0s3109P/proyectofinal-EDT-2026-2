@@ -2,6 +2,7 @@ package co.edu.uq.sga.dominio.modelo;
 
 import co.edu.uq.sga.dominio.excepciones.CapacidadExcedidaException;
 import org.junit.jupiter.api.Test;
+import co.edu.uq.sga.dominio.enums.CanalReserva;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -96,6 +97,93 @@ class AsignacionOcupantesTest {
                 new BigDecimal("55000"),
                 new BigDecimal("75000"),
                 new BigDecimal("95000")
+        );
+    }
+
+    @Test
+    void permiteUnaDistribucionCompleta() {
+        Ocupante ana = persona("Ana", 1990);
+        Ocupante luis = persona("Luis", 1995);
+
+        assertDoesNotThrow(() -> reservar(
+                new Ocupante[]{ana, luis},
+                new AsignacionApartamento(
+                        apartamento(), new Ocupante[]{ana, luis}
+                )
+        ));
+    }
+
+    @Test
+    void rechazaUnOcupanteSinApartamento() {
+        Ocupante ana = persona("Ana", 1990);
+        Ocupante luis = persona("Luis", 1995);
+
+        assertThrows(IllegalArgumentException.class, () -> reservar(
+                new Ocupante[]{ana, luis},
+                new AsignacionApartamento(
+                        apartamento(), new Ocupante[]{ana}
+                )
+        ));
+    }
+
+    @Test
+    void rechazaUnOcupanteAjenoALaReserva() {
+        Ocupante ana = persona("Ana", 1990);
+        Ocupante otraPersona = persona("Otra persona", 1995);
+
+        assertThrows(IllegalArgumentException.class, () -> reservar(
+                new Ocupante[]{ana},
+                new AsignacionApartamento(
+                        apartamento(), new Ocupante[]{otraPersona}
+                )
+        ));
+    }
+
+    @Test
+    void rechazaAsignarLaMismaPersonaADosApartamentos() {
+        Ocupante ana = persona("Ana", 1990);
+
+        Apartamento otro = new Apartamento(
+                "A103", "Apartamento 103", "A",
+                1, 1, 2,
+                new String[0],
+                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> reservar(
+                new Ocupante[]{ana},
+                new AsignacionApartamento(
+                        apartamento(), new Ocupante[]{ana}
+                ),
+                new AsignacionApartamento(
+                        otro, new Ocupante[]{ana}
+                )
+        ));
+    }
+
+    private Reserva reservar(
+            Ocupante[] ocupantes,
+            AsignacionApartamento... asignaciones
+    ) {
+        Huesped titular = new Huesped(
+                "Titular de prueba",
+                "DOC-PRUEBA",
+                LocalDate.of(1990, 1, 1),
+                "3001234567",
+                "prueba@example.com",
+                null
+        );
+
+        return new Reserva(
+                "R-PRUEBA",
+                titular,
+                ocupantes,
+                new Estancia(
+                        LocalDate.of(2026, 11, 19),
+                        LocalDate.of(2026, 11, 21)
+                ),
+                CanalReserva.DIRECTA,
+                asignaciones
         );
     }
 }
