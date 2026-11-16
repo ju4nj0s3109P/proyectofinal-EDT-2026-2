@@ -97,8 +97,19 @@ public class ServicioFolios {
 
     /** Dinero recibido del huésped: pagos menos pagos reversados y devoluciones. */
     public BigDecimal totalPagado(String codigoFolio) {
+        return totalPagado(obtener(codigoFolio));
+    }
+
+    /**
+     * Igual que {@link #totalPagado(String)} para un folio que ya se tiene en la mano.
+     * Es la base del anticipo del 30 % y de la devolución al cancelar.
+     */
+    public static BigDecimal totalPagado(Folio folio) {
+        if (folio == null) {
+            throw new IllegalArgumentException("El folio es obligatorio.");
+        }
         BigDecimal total = BigDecimal.ZERO;
-        for (MovimientoFolio movimiento : obtener(codigoFolio).getMovimientos()) {
+        for (MovimientoFolio movimiento : folio.getMovimientos()) {
             switch (movimiento.getTipo()) {
                 case PAGO -> total = total.add(movimiento.getMonto());
                 case REVERSO_PAGO, DEVOLUCION -> total = total.subtract(movimiento.getMonto());
@@ -106,6 +117,42 @@ public class ServicioFolios {
             }
         }
         return total;
+    }
+
+    /**
+     * Cierra el folio de una reserva que se cancela: reversa los cargos que siguen
+     * vigentes y devuelve todo el dinero recibido. Nada se borra.
+     *
+     * @return el monto devuelto al huésped, cero si no había pagos
+     */
+    public BigDecimal cerrarPorCancelacion(String codigoFolio, LocalDateTime fechaHora) {
+        Folio folio = obtener(codigoFolio);
+        MovimientoFolio[] movimientos = folio.getMovimientos();
+        for (MovimientoFolio movimiento : movimientos) {
+            if (movimiento.getTipo() == TipoMovimiento.CARGO
+                    && !fueReversado(movimiento.getCodigo(), movimientos)) {
+                agregar(folio, TipoMovimiento.REVERSO_CARGO, movimiento.getMonto(),
+                        "Cancelación de la reserva", fechaHora, movimiento.getCodigo());
+            }
+        }
+
+        BigDecimal devuelto = totalPagado(folio);
+        if (devuelto.signum() > 0) {
+            agregar(folio, TipoMovimiento.DEVOLUCION, devuelto,
+                    "Devolución por cancelación", fechaHora, null);
+        }
+        // El folio queda cerrado: deshacer operación por operación ya no tiene sentido.
+        deshacer.limpiar(folio.getCodigo());
+        return devuelto;
+    }
+
+    private static boolean fueReversado(String codigoMovimiento, MovimientoFolio[] movimientos) {
+        for (MovimientoFolio movimiento : movimientos) {
+            if (codigoMovimiento.equals(movimiento.getCodigoMovimientoReversado())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private MovimientoFolio registrar(String codigoFolio, TipoMovimiento tipo, BigDecimal monto,

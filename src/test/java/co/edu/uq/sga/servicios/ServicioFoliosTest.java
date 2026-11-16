@@ -160,6 +160,41 @@ class ServicioFoliosTest {
                 "R-1", BigDecimal.ONE, "Sin saldo a favor", AHORA));
     }
 
+    @Test
+    void cerrarPorCancelacionReversaLosCargosYDevuelveTodoLoRecibido() {
+        servicio.abrir(reserva("R-1"));
+        servicio.registrarCargo("R-1", new BigDecimal("1000"), "Estadía", AHORA);
+        servicio.registrarCargo("R-1", new BigDecimal("50"), "Minibar", AHORA);
+        servicio.registrarPago("R-1", new BigDecimal("300"), "Anticipo", AHORA);
+
+        BigDecimal devuelto = servicio.cerrarPorCancelacion("R-1", AHORA.plusHours(1));
+
+        assertEquals(new BigDecimal("300"), devuelto);
+        assertEquals(0, servicio.totalPagado("R-1").signum());
+        assertEquals(0, servicio.obtener("R-1").calcularSaldo().signum());
+        assertEquals(6, servicio.obtener("R-1").getMovimientos().length,
+                "dos cargos, un pago, dos reversos y la devolución: nada se borró");
+        assertThrows(ExcepcionDominio.class, () -> servicio.deshacerUltima("R-1", AHORA),
+                "el folio cerrado ya no se deshace operación por operación");
+
+        assertEquals(0, servicio.cerrarPorCancelacion("R-1", AHORA).signum(),
+                "cerrarlo otra vez no reversa dos veces el mismo cargo");
+        assertEquals(6, servicio.obtener("R-1").getMovimientos().length);
+    }
+
+    @Test
+    void cerrarPorCancelacionSinPagosNoRegistraDevolucion() {
+        servicio.abrir(reserva("R-1"));
+        servicio.registrarCargo("R-1", new BigDecimal("1000"), "Estadía", AHORA);
+
+        assertEquals(0, servicio.cerrarPorCancelacion("R-1", AHORA).signum());
+        assertEquals(2, servicio.obtener("R-1").getMovimientos().length);
+        assertEquals(TipoMovimiento.REVERSO_CARGO,
+                servicio.obtener("R-1").getMovimientos()[1].getTipo());
+        assertThrows(ExcepcionDominio.class,
+                () -> servicio.cerrarPorCancelacion("NO-EXISTE", AHORA));
+    }
+
     private static Reserva reserva(String folio) {
         Huesped titular = new Huesped("Titular", "1094000000", LocalDate.of(1990, 1, 1),
                 "3001234567", "titular@example.com", null);

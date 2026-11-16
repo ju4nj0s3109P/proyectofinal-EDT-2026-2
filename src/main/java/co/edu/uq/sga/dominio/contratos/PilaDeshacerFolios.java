@@ -10,4 +10,7 @@ public interface PilaDeshacerFolios {
 
     /** Retira la última operación apilada del folio; vacío si no queda ninguna. */
     Optional<MovimientoFolio> desapilar(String codigoFolio);
+
+    /** Descarta las operaciones pendientes de deshacer de un folio ya cerrado. */
+    void limpiar(String codigoFolio);
 }
