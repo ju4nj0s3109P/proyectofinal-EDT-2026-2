@@ -28,8 +28,9 @@ import co.edu.uq.sga.servicios.ServicioEmpleados;
 import co.edu.uq.sga.servicios.ServicioTurnosRecepcion;
 import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
 import co.edu.uq.sga.servicios.ServicioReservasPortal;
-import co.edu.uq.sga.servicios.VigilanciaAutomaticaVencimientos;
-import java.time.Duration;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 import co.edu.uq.sga.adaptadores.ColaReservasPendientesPorVencimiento;
 import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
 import co.edu.uq.sga.servicios.ServicioReservasPortal;
@@ -58,9 +59,9 @@ public final class AplicacionSGA extends Application {
     private ServicioTarifas servicioTarifas;
     private ServicioReservas servicioReservas;
     private ServicioReservasPortal servicioPortal;
-    private VigilanciaAutomaticaVencimientos vigilanciaVencimientos;
     private ServicioEmpleados servicioEmpleados;
     private ServicioTurnosRecepcion servicioTurnos;
+    private Timeline relojVencimientos;
     private CatalogoApartamentosArbol catalogoApartamentos;
 
 
@@ -137,10 +138,6 @@ public final class AplicacionSGA extends Application {
             servicioPortal = new ServicioReservasPortal(
                     servicioReservas,
                     servicioVencimientos
-            );
-            vigilanciaVencimientos = new VigilanciaAutomaticaVencimientos(
-                    servicioVencimientos,
-                    Duration.ofMinutes(1)
             );
             servicioEmpleados = new ServicioEmpleados(new CatalogoEmpleadosArbol());
             servicioTurnos = new ServicioTurnosRecepcion();
@@ -230,7 +227,6 @@ public final class AplicacionSGA extends Application {
             return;
         }
 
-        vigilanciaVencimientos.iniciar();
         var vistaAdministracion = new PanelAdministracion(servicioEmpleados, servicioTurnos);
         var vistaPortal = new PanelPortalHuespedes(catalogoHuespedes, catalogoApartamentos,
                 servicioReservas.getServicioPerfilesHuesped());
@@ -258,15 +254,29 @@ public final class AplicacionSGA extends Application {
         escenario.show();
         escenario.centerOnScreen();
 
-
-
-
+        relojVencimientos = new Timeline(
+                new KeyFrame(Duration.seconds(30), evento -> {
+                    try {
+                        int cantidad = servicioPanelReservas.procesarVencidas();
+                        if (cantidad > 0) {
+                            ventana.actualizarReservas();
+                        }
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        System.err.println(
+                                "No se pudieron procesar los vencimientos: "
+                                        + e.getMessage()
+                        );
+                    }
+                })
+        );
+        relojVencimientos.setCycleCount(Timeline.INDEFINITE);
+        relojVencimientos.play();
     }
 
     @Override
     public void stop() {
-        if (vigilanciaVencimientos != null) {
-            vigilanciaVencimientos.close();
+        if (relojVencimientos != null) {
+            relojVencimientos.stop();
         }
     }
 
