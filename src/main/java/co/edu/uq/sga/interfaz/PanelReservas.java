@@ -89,7 +89,44 @@ public final class PanelReservas extends VBox
             }
         });
 
-        HBox acciones = new HBox(12, nueva, checkIn, checkOut);
+        Button verFolio = new Button("Ver folio");
+
+        verFolio.getStyleClass().add("accion-secundaria");
+
+        verFolio.disableProperty().bind(
+                tabla.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        verFolio.setOnAction(evento -> {
+            ResumenReserva seleccionada =
+                    tabla.getSelectionModel().getSelectedItem();
+
+            if (seleccionada == null) {
+                return;
+            }
+
+            Dialog<Void> dialogo = new Dialog<>();
+            dialogo.initOwner(getScene().getWindow());
+            dialogo.setTitle("Folio " + seleccionada.folio());
+            dialogo.setHeaderText("Titular: " + seleccionada.titular());
+
+            dialogo.getDialogPane().setContent(
+                    new PanelFolio(servicio, seleccionada.folio())
+            );
+
+            dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+            dialogo.getDialogPane()
+                    .lookupButton(ButtonType.CLOSE)
+                    .getStyleClass()
+                    .add("accion-secundaria");
+            dialogo.getDialogPane().setPrefWidth(960);
+            dialogo.setResizable(true);
+            dialogo.showAndWait();
+        });
+
+        FlowPane acciones = new FlowPane(
+                12, 10, nueva, checkIn, checkOut, verFolio
+        );
         getChildren().addAll(acciones, tabla);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
@@ -189,8 +226,10 @@ public final class PanelReservas extends VBox
         error.setWrapText(true);
 
         Button agregar = new Button("Agregar ocupante");
+        agregar.getStyleClass().add("accion-secundaria");
         agregar.setOnAction(evento -> {
             error.setText("");
+
 
             if (nombre.getText().isBlank()
                     || nacimiento.getValue() == null) {
@@ -217,6 +256,7 @@ public final class PanelReservas extends VBox
                 ocupantes.getSelectionModel()
                         .selectedItemProperty().isNull()
         );
+        quitar.getStyleClass().add("accion-secundaria");
 
         quitar.setOnAction(evento -> {
             int indice = ocupantes.getSelectionModel().getSelectedIndex();
@@ -262,6 +302,13 @@ public final class PanelReservas extends VBox
 
         Button botonRegistrar = (Button)
                 dialogo.getDialogPane().lookupButton(registrar);
+
+        botonRegistrar.getStyleClass().add("accion-principal");
+
+        dialogo.getDialogPane()
+                .lookupButton(ButtonType.CANCEL)
+                .getStyleClass()
+                .add("accion-secundaria");
 
         botonRegistrar.addEventFilter(ActionEvent.ACTION, evento -> {
             error.setText("");

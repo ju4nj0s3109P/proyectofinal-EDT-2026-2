@@ -317,7 +317,6 @@
     -fx-text-fill: #a13030;
 }
 
-/* Estados operativos de los apartamentos del mapa */
 
 .nodo:preparado {
     -fx-background-color: #e1f2e5;
@@ -353,4 +352,27 @@
 .peso-pasillo:cerrado {
     -fx-text-fill: #a13030;
     -fx-background-color: #fbe3e3;
+}
+
+.accion-secundaria {
+    -fx-background-color: #edf1e9;
+    -fx-text-fill: #26382f;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-border-color: #c5d0c7;
+    -fx-border-radius: 8;
+    -fx-padding: 12 20;
+    -fx-cursor: hand;
+}
+
+.accion-secundaria:hover {
+    -fx-background-color: #dde6da;
+}
+
+.accion-secundaria:focused {
+    -fx-border-color: #bd623e;
+}
+
+.accion-secundaria:disabled {
+    -fx-opacity: 0.45;
 }

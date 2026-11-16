@@ -100,8 +100,11 @@ public final class PanelPreparacion extends VBox
         Button actualizar = new Button("Actualizar");
         actualizar.setOnAction(evento -> actualizar());
 
-        HBox acciones = new HBox(
-                12, despachar, completar, verRuta, actualizar
+        verRuta.getStyleClass().add("accion-secundaria");
+        actualizar.getStyleClass().add("accion-secundaria");
+
+        FlowPane acciones = new FlowPane(
+                12, 10, despachar, completar, verRuta, actualizar
         );
 
         getChildren().addAll(
