@@ -5,6 +5,10 @@ import co.edu.uq.sga.controladores.ControladorReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ResumenReserva;
+import co.edu.uq.sga.servicios.ServicioTarifas;
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.event.ActionEvent;
@@ -124,8 +128,27 @@ public final class PanelReservas extends VBox
             dialogo.showAndWait();
         });
 
+        Button cotizar = new Button("Ver cotización");
+        cotizar.getStyleClass().add("accion-secundaria");
+
+        cotizar.disableProperty().bind(
+                tabla.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        cotizar.setOnAction(evento -> {
+            ResumenReserva seleccionada =
+                    tabla.getSelectionModel().getSelectedItem();
+
+            if (seleccionada != null) {
+                controlador.cotizar(seleccionada.folio())
+                        .ifPresent(cotizacion ->
+                                mostrarCotizacion(seleccionada, cotizacion)
+                        );
+            }
+        });
+
         FlowPane acciones = new FlowPane(
-                12, 10, nueva, checkIn, checkOut, verFolio
+                12, 10, nueva, checkIn, checkOut, verFolio, cotizar
         );
         getChildren().addAll(acciones, tabla);
         VBox.setVgrow(tabla, Priority.ALWAYS);
@@ -171,6 +194,83 @@ public final class PanelReservas extends VBox
                 }
             }
         }
+    }
+
+    private void mostrarCotizacion(
+            ResumenReserva reserva,
+            ServicioTarifas.Cotizacion cotizacion
+    ) {
+        NumberFormat moneda = NumberFormat.getCurrencyInstance(
+                Locale.forLanguageTag("es-CO")
+        );
+
+        DateTimeFormatter formato =
+                DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        Label total = new Label(
+                "Total: " + moneda.format(cotizacion.getTotal())
+        );
+        total.getStyleClass().add("subtitulo");
+
+        Label resumen = new Label(
+                cotizacion.cantidadNoches() + " noches · "
+                        + reserva.ocupantes() + " ocupantes · "
+                        + reserva.apartamentos()
+        );
+        resumen.getStyleClass().add("texto-suave");
+        resumen.setWrapText(true);
+
+        VBox noches = new VBox(10);
+
+        for (var noche : cotizacion.getDesglose()) {
+            Label fecha = new Label(
+                    noche.fecha().format(formato)
+                            + " · Temporada " + noche.temporada()
+            );
+            fecha.getStyleClass().add("campo");
+
+            Label calculo = new Label(
+                    noche.ocupantesPagantes() + " personas que pagan × "
+                            + moneda.format(noche.tarifaPorPersona())
+                            + " = " + moneda.format(noche.subtotal())
+            );
+            calculo.setWrapText(true);
+
+            VBox detalle = new VBox(6, fecha, calculo);
+            detalle.getStyleClass().add("detalle");
+            noches.getChildren().add(detalle);
+        }
+
+        ScrollPane scroll = new ScrollPane(noches);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(320);
+        scroll.getStyleClass().add("tablero-scroll");
+
+        Label nota = new Label(
+                "Los menores de 6 años ocupan cupo, pero no pagan. "
+                        + "La noche de salida no se cobra.\n"
+                        + "Esta consulta no registra cargos en el folio."
+        );
+        nota.setWrapText(true);
+        nota.getStyleClass().add("texto-suave");
+
+        VBox contenido = new VBox(14, total, resumen, scroll, nota);
+
+        Dialog<Void> dialogo = new Dialog<>();
+        dialogo.initOwner(getScene().getWindow());
+        dialogo.setTitle("Cotización " + reserva.folio());
+        dialogo.setHeaderText("Titular: " + reserva.titular());
+        dialogo.getDialogPane().setContent(contenido);
+        dialogo.getDialogPane().setPrefWidth(650);
+        dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        dialogo.getDialogPane()
+                .lookupButton(ButtonType.CLOSE)
+                .getStyleClass()
+                .add("accion-secundaria");
+
+        dialogo.setResizable(true);
+        dialogo.showAndWait();
     }
 
     private void abrirFormulario() {

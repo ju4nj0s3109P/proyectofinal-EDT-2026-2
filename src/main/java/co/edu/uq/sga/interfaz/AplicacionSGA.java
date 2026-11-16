@@ -123,7 +123,8 @@ public final class AplicacionSGA extends Application {
                     catalogoReservas,
                     servicioReservas,
                     servicioPreparacion,
-                    servicioFolios
+                    servicioFolios,
+                    servicioTarifas
             );
 
             var tareasIniciales = new CargadorPreparaciones().cargar(

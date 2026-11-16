@@ -41,6 +41,7 @@ public final class ServicioPanelReservas {
     private final ServicioReservas reservas;
     private final ServicioPanelPreparacion preparacion;
     private final ServicioFolios folios;
+    private final ServicioTarifas tarifas;
 
     public ServicioPanelReservas(
             CatalogoApartamentosArbol apartamentos,
@@ -48,7 +49,8 @@ public final class ServicioPanelReservas {
             CatalogoReservasArbol catalogo,
             ServicioReservas reservas,
             ServicioPanelPreparacion preparacion,
-            ServicioFolios folios
+            ServicioFolios folios,
+            ServicioTarifas tarifas
     ) {
         this.apartamentos = Objects.requireNonNull(apartamentos);
         this.huespedes = Objects.requireNonNull(huespedes);
@@ -56,6 +58,7 @@ public final class ServicioPanelReservas {
         this.reservas = Objects.requireNonNull(reservas);
         this.preparacion = Objects.requireNonNull(preparacion);
         this.folios = Objects.requireNonNull(folios);
+        this.tarifas = Objects.requireNonNull(tarifas);
     }
 
     public void registrarDirecta(
@@ -142,6 +145,24 @@ public final class ServicioPanelReservas {
         );
 
         folios.abrir(reserva);
+    }
+
+    public ServicioTarifas.Cotizacion cotizarReserva(String codigo) {
+        Reserva reserva = buscarReserva(codigo);
+        var asignaciones = reserva.getAsignaciones();
+
+        if (asignaciones.length != 1) {
+            throw new IllegalStateException(
+                    "Para cotizar varios apartamentos primero debemos "
+                            + "distribuir los ocupantes entre ellos."
+            );
+        }
+
+        return tarifas.cotizar(
+                asignaciones[0].getApartamento(),
+                reserva.getEstancia(),
+                reserva.getOcupantes()
+        );
     }
 
     public Folio consultarFolio(String codigo) {

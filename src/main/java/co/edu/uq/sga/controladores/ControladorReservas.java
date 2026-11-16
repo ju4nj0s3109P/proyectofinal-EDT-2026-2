@@ -3,6 +3,8 @@ package co.edu.uq.sga.controladores;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ResumenReserva;
+import co.edu.uq.sga.servicios.ServicioTarifas;
+import java.util.Optional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -45,6 +47,15 @@ public final class ControladorReservas {
             actualizar();
         } catch (IllegalArgumentException | IllegalStateException e) {
             vista.mostrarError(e.getMessage());
+        }
+    }
+
+    public Optional<ServicioTarifas.Cotizacion> cotizar(String folio) {
+        try {
+            return Optional.of(servicio.cotizarReserva(folio));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+            return Optional.empty();
         }
     }
 
