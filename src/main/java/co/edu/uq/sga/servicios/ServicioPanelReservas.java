@@ -37,7 +37,8 @@ public final class ServicioPanelReservas {
             LocalDate salida,
             LocalDateTime llegadaEstimada,
             EstadoReserva estado,
-            int ocupantes
+            int ocupantes,
+            CanalReserva canal
     ) {}
 
     public record ApartamentoDisponible(
@@ -93,6 +94,7 @@ public final class ServicioPanelReservas {
     private final ServicioFolios folios;
     private final ServicioTarifas tarifas;
     private final ServicioDisponibilidad disponibilidad;
+    private final ServicioReservasPortal portal;
 
     public ServicioPanelReservas(
             CatalogoApartamentosArbol apartamentos,
@@ -102,7 +104,8 @@ public final class ServicioPanelReservas {
             ServicioPanelPreparacion preparacion,
             ServicioFolios folios,
             ServicioTarifas tarifas,
-            ServicioDisponibilidad disponibilidad
+            ServicioDisponibilidad disponibilidad,
+            ServicioReservasPortal portal
     ) {
         this.apartamentos = Objects.requireNonNull(apartamentos);
         this.huespedes = Objects.requireNonNull(huespedes);
@@ -112,6 +115,7 @@ public final class ServicioPanelReservas {
         this.folios = Objects.requireNonNull(folios);
         this.tarifas = Objects.requireNonNull(tarifas);
         this.disponibilidad = Objects.requireNonNull(disponibilidad);
+        this.portal = Objects.requireNonNull(portal);
     }
 
     public void registrarDirecta(
@@ -122,6 +126,39 @@ public final class ServicioPanelReservas {
             LocalDate entrada,
             LocalDate salida,
             LocalTime horaLlegada
+    ) {
+        registrar(
+                folio, documentoTitular, codigosApartamentos,
+                datosOcupantes, entrada, salida, horaLlegada,
+                CanalReserva.DIRECTA
+        );
+    }
+
+    public void registrarPortal(
+            String folio,
+            String documentoTitular,
+            String[] codigosApartamentos,
+            DatosOcupante[] datosOcupantes,
+            LocalDate entrada,
+            LocalDate salida,
+            LocalTime horaLlegada
+    ) {
+        registrar(
+                folio, documentoTitular, codigosApartamentos,
+                datosOcupantes, entrada, salida, horaLlegada,
+                CanalReserva.PORTAL
+        );
+    }
+
+    public void registrar(
+            String folio,
+            String documentoTitular,
+            String[] codigosApartamentos,
+            DatosOcupante[] datosOcupantes,
+            LocalDate entrada,
+            LocalDate salida,
+            LocalTime horaLlegada,
+            CanalReserva canal
     ) {
         if (horaLlegada == null) {
             throw new IllegalArgumentException(
@@ -179,15 +216,23 @@ public final class ServicioPanelReservas {
                 titular,
                 ocupantes,
                 estancia,
-                CanalReserva.DIRECTA,
+                canal,
                 asignaciones
         );
 
-        catalogo.registrarDirecta(
-                reserva,
-                entrada.atTime(horaLlegada),
-                reservas
-        );
+        if (canal == CanalReserva.PORTAL) {
+            catalogo.registrarPortal(
+                    reserva,
+                    entrada.atTime(horaLlegada),
+                    portal
+            );
+        } else {
+            catalogo.registrarDirecta(
+                    reserva,
+                    entrada.atTime(horaLlegada),
+                    reservas
+            );
+        }
 
         folios.abrir(reserva);
     }
@@ -480,7 +525,8 @@ public final class ServicioPanelReservas {
                     reserva.getEstancia().getFechaSalida(),
                     registro.llegadaEstimada(),
                     reserva.getEstado(),
-                    reserva.getOcupantes().length
+                    reserva.getOcupantes().length,
+                    reserva.getCanal()
             );
         }
 
@@ -585,5 +631,30 @@ public final class ServicioPanelReservas {
         }
 
         return resultado;
+    }
+
+    public void confirmarPortal(String folio) {
+        procesarVencidas();
+
+        Reserva reserva = buscarReserva(folio);
+
+        if (reserva.getCanal() != CanalReserva.PORTAL
+                || reserva.getEstado() != EstadoReserva.PENDIENTE) {
+            throw new IllegalStateException(
+                    "Solo se pueden confirmar reservas pendientes del portal."
+            );
+        }
+
+        BigDecimal total = cotizarReserva(folio).getTotal();
+
+        portal.confirmar(
+                reserva,
+                folios.obtener(folio),
+                total
+        );
+    }
+
+    public int procesarVencidas() {
+        return portal.procesarVencidas(LocalDateTime.now());
     }
 }
