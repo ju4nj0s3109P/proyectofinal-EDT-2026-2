@@ -6,7 +6,9 @@ import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ResumenReserva;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ApartamentoDisponible;
-import co.edu.uq.sga.servicios.ServicioTarifas;
+import co.edu.uq.sga.dominio.enums.CanalReserva;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -28,13 +30,15 @@ public final class PanelReservas extends VBox
     private final ControladorReservas controlador;
     private final Button checkIn = new Button("Registrar entrada");
     private final Button checkOut = new Button("Registrar salida");
+    private final Button confirmarPortal =
+            new Button("Confirmar portal");
 
     public PanelReservas(ServicioPanelReservas servicio) {
         super(18);
 
         controlador = new ControladorReservas(servicio, this);
 
-        Button nueva = new Button("Nueva reserva directa");
+        Button nueva = new Button("Nueva reserva");
         nueva.getStyleClass().add("accion-principal");
         nueva.setOnAction(evento -> abrirFormulario());
 
@@ -54,13 +58,17 @@ public final class PanelReservas extends VBox
                 r -> r.llegadaEstimada().toLocalTime().toString()
         );
         agregarColumna("Estado", r -> r.estado().toString());
+        agregarColumna("Canal", r -> r.canal().toString());
         agregarColumna("Personas", r -> String.valueOf(r.ocupantes()));
 
         checkIn.getStyleClass().add("accion-principal");
         checkOut.getStyleClass().add("accion-principal");
 
+
         checkIn.setDisable(true);
         checkOut.setDisable(true);
+        confirmarPortal.getStyleClass().add("accion-principal");
+        confirmarPortal.setDisable(true);
 
         tabla.getSelectionModel().selectedItemProperty().addListener(
                 (observable, anterior, seleccionada) -> {
@@ -72,6 +80,11 @@ public final class PanelReservas extends VBox
                     checkOut.setDisable(
                             seleccionada == null
                                     || seleccionada.estado() != EstadoReserva.EN_CURSO
+                    );
+                    confirmarPortal.setDisable(
+                            seleccionada == null
+                                    || seleccionada.canal() != CanalReserva.PORTAL
+                                    || seleccionada.estado() != EstadoReserva.PENDIENTE
                     );
                 }
         );
@@ -148,8 +161,57 @@ public final class PanelReservas extends VBox
             }
         });
 
+        confirmarPortal.setOnAction(evento -> {
+            ResumenReserva seleccionada =
+                    tabla.getSelectionModel().getSelectedItem();
+
+            if (seleccionada == null) {
+                return;
+            }
+
+            controlador.cotizar(seleccionada.folio()).ifPresent(cotizacion -> {
+                BigDecimal anticipo = cotizacion.getTotal()
+                        .multiply(new BigDecimal("0.30"))
+                        .setScale(2, RoundingMode.CEILING);
+
+                NumberFormat moneda = NumberFormat.getCurrencyInstance(
+                        Locale.forLanguageTag("es-CO")
+                );
+
+                Alert aviso = new Alert(
+                        Alert.AlertType.CONFIRMATION,
+                        "",
+                        ButtonType.OK,
+                        ButtonType.CANCEL
+                );
+
+                aviso.initOwner(getScene().getWindow());
+                aviso.setTitle("Confirmar reserva del portal");
+                aviso.setHeaderText("Reserva " + seleccionada.folio());
+                aviso.setContentText(
+                        "Cotización: " + moneda.format(cotizacion.getTotal())
+                                + "\nAnticipo mínimo: " + moneda.format(anticipo)
+                                + "\n\nRegistra el anticipo desde «Ver folio»."
+                                + "\nAl continuar se comprobarán los pagos registrados."
+                                + "\nEsta acción no registra un pago adicional."
+                );
+
+                aviso.getDialogPane().setPrefWidth(540);
+                aviso.getDialogPane().lookupButton(ButtonType.OK)
+                        .getStyleClass().add("accion-principal");
+                aviso.getDialogPane().lookupButton(ButtonType.CANCEL)
+                        .getStyleClass().add("accion-secundaria");
+
+                aviso.showAndWait()
+                        .filter(respuesta -> respuesta == ButtonType.OK)
+                        .ifPresent(respuesta ->
+                                controlador.confirmarPortal(seleccionada.folio())
+                        );
+            });
+        });
+
         FlowPane acciones = new FlowPane(
-                12, 10, nueva, checkIn, checkOut, verFolio, cotizar
+                12, 10, nueva, confirmarPortal, checkIn, checkOut, verFolio, cotizar
         );
         getChildren().addAll(acciones, tabla);
         VBox.setVgrow(tabla, Priority.ALWAYS);
@@ -308,7 +370,7 @@ public final class PanelReservas extends VBox
     private void abrirFormulario() {
         Dialog<Void> dialogo = new Dialog<>();
         dialogo.initOwner(getScene().getWindow());
-        dialogo.setTitle("Nueva reserva directa");
+        dialogo.setTitle("Nueva reserva");
 
         TextField folio = new TextField();
         TextField documento = new TextField();
@@ -323,6 +385,25 @@ public final class PanelReservas extends VBox
         TextField hora = new TextField();
         hora.setPromptText("Hora estimada, ejemplo: 15:30");
 
+        ComboBox<String> canal = new ComboBox<>();
+        canal.getItems().addAll("Directa", "Portal");
+        canal.setValue("Directa");
+        canal.setMaxWidth(Double.MAX_VALUE);
+
+        Label avisoCanal = new Label();
+        avisoCanal.setWrapText(true);
+        avisoCanal.getStyleClass().add("texto-suave");
+
+        Runnable actualizarAviso = () -> avisoCanal.setText(
+                "Portal".equals(canal.getValue())
+                        ? "Queda pendiente. Requiere un anticipo del 30 % "
+                        + "antes de cumplir 24 horas."
+                        : "Se registra directamente como confirmada."
+        );
+
+        canal.setOnAction(evento -> actualizarAviso.run());
+        actualizarAviso.run();
+
         GridPane datos = new GridPane();
         datos.setHgap(12);
         datos.setVgap(10);
@@ -333,6 +414,9 @@ public final class PanelReservas extends VBox
         datos.addRow(3, new Label("Entrada"), entrada);
         datos.addRow(4, new Label("Salida"), salida);
         datos.addRow(5, new Label("Hora de llegada"), hora);
+        datos.addRow(6, new Label("Canal de reserva"), canal);
+
+        datos.add(avisoCanal, 0, 7, 2, 1);
 
         TextField nombre = new TextField();
         nombre.setPromptText("Nombre del ocupante");
@@ -780,15 +864,29 @@ public final class PanelReservas extends VBox
                 DatosOcupante[] personas = ocupantes.getItems()
                         .toArray(new DatosOcupante[0]);
 
-                boolean registrada = controlador.registrar(
-                        folio.getText().trim(),
-                        documento.getText().trim(),
-                        codigos,
-                        personas,
-                        entrada.getValue(),
-                        salida.getValue(),
-                        horaLlegada
-                );
+                boolean registrada;
+
+                if ("Portal".equals(canal.getValue())) {
+                    registrada = controlador.registrarPortal(
+                            folio.getText().trim(),
+                            documento.getText().trim(),
+                            codigos,
+                            personas,
+                            entrada.getValue(),
+                            salida.getValue(),
+                            horaLlegada
+                    );
+                } else {
+                    registrada = controlador.registrar(
+                            folio.getText().trim(),
+                            documento.getText().trim(),
+                            codigos,
+                            personas,
+                            entrada.getValue(),
+                            salida.getValue(),
+                            horaLlegada
+                    );
+                }
 
                 if (!registrada) {
                     evento.consume();
