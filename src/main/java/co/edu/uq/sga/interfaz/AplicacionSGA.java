@@ -25,11 +25,12 @@ public final class AplicacionSGA extends Application {
 
     @Override
     public void init() {
-        Path archivo = Path.of("data", "mapa-edificio.txt");
+        Path archivoUbicaciones = Path.of("data", "ubicaciones.csv");
+        Path archivoPasillos = Path.of("data", "pasillos.csv");
 
         try {
             CargadorMapaEdificio cargador = new CargadorMapaEdificio();
-            var mapa = cargador.cargar(archivo);
+            var mapa = cargador.cargar(archivoUbicaciones, archivoPasillos);
 
             ServicioMapa.Ubicacion[] ubicaciones =
                     new ServicioMapa.Ubicacion[mapa.ubicaciones().tamanio()];
