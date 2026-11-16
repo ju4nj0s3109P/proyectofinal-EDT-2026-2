@@ -166,7 +166,7 @@ class AdaptadoresTest {
                 LocalDateTime.of(2026, 12, 1, 8, 1)).orElseThrow();
         assertEquals("A-101", tarea.getApartamento().getCodigo());
         assertArrayEquals(new String[] {"REC", "ESC", "A-101"}, servicio.calcularRuta("REC", "A-101"));
-        servicio.completar(tarea);
+        servicio.completar(tarea, LocalDateTime.of(2026, 12, 1, 8, 2));
         assertEquals(EstadoApartamento.PREPARADO, a101.getEstadoOperativo());
         assertTrue(servicio.despacharSiguiente().isEmpty());
     }
