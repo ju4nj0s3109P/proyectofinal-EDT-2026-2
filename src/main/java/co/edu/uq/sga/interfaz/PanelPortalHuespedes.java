@@ -1,10 +1,10 @@
 package co.edu.uq.sga.interfaz;
 
-import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;\nimport co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
+import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
+import co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
 import co.edu.uq.sga.dominio.modelo.Apartamento;
 import co.edu.uq.sga.dominio.modelo.Huesped;
 import co.edu.uq.sga.dominio.modelo.Reserva;
-import co.edu.uq.sga.servicios.ServicioApartamentos;
 import co.edu.uq.sga.servicios.ServicioPerfilesHuesped;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
