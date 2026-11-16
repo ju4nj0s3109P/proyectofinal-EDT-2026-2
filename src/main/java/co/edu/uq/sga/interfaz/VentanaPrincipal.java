@@ -61,13 +61,29 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
     private final PanelPreparacion vistaPreparacion;
 
+    private final PanelAdministracion vistaAdministracion;
+    private final PanelPortalHuespedes vistaPortal;
+    private final PanelCalendario vistaCalendario;
+    private final PanelEstadisticas vistaEstadisticas;
+    private final PanelGestionFinanciera vistaFinanzas;
+    private final ToggleButton botonAdministracion = new ToggleButton("Administración");
+    private final ToggleButton botonPortal = new ToggleButton("Portal huéspedes");
+    private final ToggleButton botonCalendario = new ToggleButton("Calendario");
+    private final ToggleButton botonEstadisticas = new ToggleButton("Estadísticas");
+    private final ToggleButton botonFinanzas = new ToggleButton("Gestión financiera");
+
     private final ToggleButton botonPreparacion =
             new ToggleButton("Preparación");
 
     public VentanaPrincipal(ServicioMapa servicio,
                             ServicioApartamentos servicioApartamentos,
                             ServicioPanelPreparacion servicioPreparacion,
-                            ServicioPanelReservas servicioPanelReservas
+                            ServicioPanelReservas servicioPanelReservas,
+                            PanelAdministracion administracion,
+                            PanelPortalHuespedes portal,
+                            PanelCalendario calendario,
+                            PanelEstadisticas estadisticas,
+                            PanelGestionFinanciera finanzas
     ) {
         this.controlador = new ControladorMapa(servicio, this);
         this.servicioApartamentos = servicioApartamentos;
@@ -100,6 +116,11 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                 }
         );
         vistaReservas = new PanelReservas(servicioPanelReservas);
+        vistaAdministracion = administracion;
+        vistaPortal = portal;
+        vistaCalendario = calendario;
+        vistaEstadisticas = estadisticas;
+        vistaFinanzas = finanzas;
 
         setLeft(crearBarraLateral());
         vistaTablero = new PanelTablero(servicioApartamentos);
@@ -107,7 +128,9 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         vistaMapa = crearVistaMapa();
         vistaTabla = crearTabla(ubicaciones);
 
-        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla, vistaPreparacion, vistaReservas);
+        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla, vistaPreparacion,
+                vistaReservas, vistaAdministracion, vistaPortal, vistaCalendario,
+                vistaEstadisticas, vistaFinanzas);
 
         VBox contenido = new VBox(24, crearEncabezado(), vistas);
         contenido.getStyleClass().add("contenido");
@@ -621,7 +644,8 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         vistaReservas.actualizar();
 
         for (Node vista : new Node[]{
-                vistaTablero, vistaMapa, vistaTabla, vistaPreparacion
+                vistaTablero, vistaMapa, vistaTabla, vistaPreparacion,
+                vistaAdministracion, vistaPortal, vistaCalendario, vistaEstadisticas, vistaFinanzas
         }) {
             vista.setVisible(false);
             vista.setManaged(false);
@@ -637,5 +661,24 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonReservas.setSelected(true);
 
         titulo.setText("Reservas del alojamiento");
+    }
+
+    private void mostrarComplementaria(Node seleccionada, ToggleButton boton, String encabezado) {
+        for (Node vista : new Node[]{vistaTablero, vistaMapa, vistaTabla, vistaPreparacion,
+                vistaReservas, vistaAdministracion, vistaPortal, vistaCalendario,
+                vistaEstadisticas, vistaFinanzas}) {
+            vista.setVisible(vista == seleccionada);
+            vista.setManaged(vista == seleccionada);
+        }
+        if (seleccionada instanceof PanelCalendario panel) panel.actualizar();
+        if (seleccionada instanceof PanelEstadisticas panel) panel.actualizar();
+        if (seleccionada instanceof PanelGestionFinanciera panel) panel.actualizar();
+        if (seleccionada instanceof PanelAdministracion panel) panel.actualizar();
+        for (ToggleButton opcion : new ToggleButton[]{botonTablero, botonReservas, botonMapa,
+                botonUbicaciones, botonPreparacion, botonAdministracion, botonPortal,
+                botonCalendario, botonEstadisticas, botonFinanzas}) {
+            opcion.setSelected(opcion == boton);
+        }
+        titulo.setText(encabezado);
     }
 }
