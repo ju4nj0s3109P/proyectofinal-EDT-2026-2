@@ -184,20 +184,6 @@ public final class AplicacionSGA extends Application {
                 }
             }
 
-            var colaVencimientos = new ColaReservasPendientesPorVencimiento(
-                    ServicioVencimientoReservas.comparadorPorVencimiento()
-            );
-
-            var servicioVencimientos = new ServicioVencimientoReservas(
-                    servicioReservas,
-                    colaVencimientos
-            );
-
-            var servicioPortal = new ServicioReservasPortal(
-                    servicioReservas,
-                    servicioVencimientos
-            );
-
             servicioPanelReservas = new ServicioPanelReservas(
                     catalogo,
                     catalogoHuespedes,
