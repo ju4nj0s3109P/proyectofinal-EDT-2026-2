@@ -33,7 +33,10 @@ class ServicioRutaPreparacionTest {
         panel.encolarPendiente("A1", hoy.atTime(11, 0));
         panel.encolarPendiente("A2", hoy.atTime(10, 0));
 
-        assertArrayEquals(new String[]{"REC", "A2", "A1"},
+        // La ruta mínima desde REC hasta A2 atraviesa A1. Ese paso intermedio
+        // no significa que su tarea se atienda antes: el recorrido vuelve a A1
+        // después de llegar a A2, respetando el orden de prioridad de la cola.
+        assertArrayEquals(new String[]{"REC", "A1", "A2", "A1"},
                 panel.calcularRutaPendientes("REC"));
     }
 
