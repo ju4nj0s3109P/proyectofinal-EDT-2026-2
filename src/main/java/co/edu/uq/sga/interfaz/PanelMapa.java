@@ -35,6 +35,9 @@ public final class PanelMapa extends Pane {
     private static final PseudoClass FUERA_SERVICIO =
             PseudoClass.getPseudoClass("fuera-servicio");
 
+    private static final PseudoClass CERRADO =
+            PseudoClass.getPseudoClass("cerrado");
+
     private final ServicioMapa.Ubicacion[] ubicaciones;
     private final ServicioMapa.Pasillo[] pasillos;
 
@@ -286,6 +289,36 @@ public final class PanelMapa extends Pane {
             nodo.setAccessibleText(
                     apartamento.nombre() + ", " + estado
                             + ", calcular ruta desde recepción"
+            );
+        }
+    }
+
+    public void actualizarPasillosCerrados(Pasillo[] cerrados) {
+        for (int i = 0; i < pasillos.length; i++) {
+            Pasillo pasillo = pasillos[i];
+            boolean cerrado = false;
+
+            for (Pasillo bloqueado : cerrados) {
+                boolean directo =
+                        pasillo.origen().equals(bloqueado.origen())
+                                && pasillo.destino().equals(bloqueado.destino());
+
+                boolean inverso =
+                        pasillo.origen().equals(bloqueado.destino())
+                                && pasillo.destino().equals(bloqueado.origen());
+
+                if (directo || inverso) {
+                    cerrado = true;
+                    break;
+                }
+            }
+
+            conexiones[i].pseudoClassStateChanged(CERRADO, cerrado);
+            distancias[i].pseudoClassStateChanged(CERRADO, cerrado);
+
+            distancias[i].setText(
+                    new DecimalFormat("0.########").format(pasillo.metros())
+                            + " m" + (cerrado ? " · cerrado" : "")
             );
         }
     }

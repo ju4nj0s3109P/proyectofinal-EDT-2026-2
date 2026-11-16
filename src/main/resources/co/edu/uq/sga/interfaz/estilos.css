@@ -179,10 +179,6 @@
     -fx-background-color: #f4f8f2;
 }
 
-.nodo:en-ruta {
-    -fx-background-color: #fff2e8;
-}
-
 .nodo:destino,
 .nodo:focused {
     -fx-border-color: #bd623e;
@@ -343,9 +339,18 @@
     -fx-text-fill: #a13030;
 }
 
-/* La ruta se distingue por el borde sin perder el color del estado */
-
 .nodo:en-ruta {
     -fx-border-color: #bd623e;
     -fx-border-width: 3;
+}
+
+.pasillo:cerrado {
+    -fx-stroke: #b83d3d;
+    -fx-stroke-width: 3;
+    -fx-stroke-dash-array: 8 6;
+}
+
+.peso-pasillo:cerrado {
+    -fx-text-fill: #a13030;
+    -fx-background-color: #fbe3e3;
 }

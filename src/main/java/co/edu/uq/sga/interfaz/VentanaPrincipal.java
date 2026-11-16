@@ -4,8 +4,10 @@ import co.edu.uq.sga.controladores.ControladorMapa;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioMapa.Recorrido;
 import co.edu.uq.sga.servicios.ServicioMapa.Ubicacion;
+import co.edu.uq.sga.servicios.ServicioMapa.Pasillo;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
 import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
+
 
 
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -183,9 +185,13 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         scroll.setFitToHeight(true);
         scroll.setPannable(true);
         scroll.getStyleClass().add("mapa-scroll");
+        Button gestionarPasillos = new Button("Gestionar pasillos");
+        gestionarPasillos.getStyleClass().add("accion-principal");
+        gestionarPasillos.setOnAction(evento -> abrirGestionPasillos());
 
         VBox zonaMapa = new VBox(
                 12,
+                gestionarPasillos,
                 scroll,
                 etiqueta(
                         "Esquema de conexiones · Distancias en metros",
@@ -381,6 +387,11 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
         if (mostrarMapa) {
             mapa.actualizarEstados(servicioApartamentos.consultarTodos());
+            mapa.actualizarPasillosCerrados(
+                    controlador.consultarPasillosCerrados()
+            );
+
+            actualizarRuta();
         }
 
 
@@ -458,5 +469,122 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonPreparacion.setSelected(true);
 
         titulo.setText("Preparación de apartamentos");
+    }
+
+    private void abrirGestionPasillos() {
+        Dialog<Void> dialogo = new Dialog<>();
+        dialogo.setTitle("Pasillos del edificio");
+        dialogo.setHeaderText(
+                "Los cierres afectan las rutas desde recepción."
+        );
+        dialogo.initOwner(getScene().getWindow());
+        dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        ListView<Pasillo> lista = new ListView<>();
+        lista.getItems().addAll(controlador.consultarPasillos());
+        lista.setPrefHeight(240);
+
+        lista.setCellFactory(vista -> new ListCell<>() {
+            @Override
+            protected void updateItem(Pasillo pasillo, boolean vacio) {
+                super.updateItem(pasillo, vacio);
+
+                if (vacio || pasillo == null) {
+                    setText(null);
+                    return;
+                }
+
+                String estado = controlador.estaAbierto(pasillo)
+                        ? "Abierto"
+                        : "Cerrado";
+
+                setText(
+                        pasillo.origen() + " ↔ " + pasillo.destino()
+                                + " · " + pasillo.metros() + " m"
+                                + " · " + estado
+                );
+            }
+        });
+
+        Label conectividad = new Label();
+        conectividad.setWrapText(true);
+        actualizarConectividad(conectividad);
+
+        Button cerrar = new Button("Cerrar pasillo");
+        Button abrir = new Button("Abrir pasillo");
+
+        cerrar.disableProperty().bind(
+                lista.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        abrir.disableProperty().bind(
+                lista.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        cerrar.setOnAction(evento ->
+                cambiarPasilloSeleccionado(lista, false, conectividad)
+        );
+
+        abrir.setOnAction(evento ->
+                cambiarPasilloSeleccionado(lista, true, conectividad)
+        );
+
+        VBox contenido = new VBox(
+                16,
+                lista,
+                new HBox(12, cerrar, abrir),
+                conectividad
+        );
+
+        dialogo.getDialogPane().setContent(contenido);
+        dialogo.getDialogPane().setPrefWidth(560);
+        dialogo.setResizable(true);
+        dialogo.showAndWait();
+    }
+
+    private void cambiarPasilloSeleccionado(
+            ListView<Pasillo> lista,
+            boolean abierto,
+            Label conectividad
+    ) {
+        Pasillo seleccionado =
+                lista.getSelectionModel().getSelectedItem();
+
+        if (seleccionado == null) {
+            return;
+        }
+
+        try {
+            controlador.cambiarEstadoPasillo(seleccionado, abierto);
+
+            lista.refresh();
+
+            mapa.actualizarPasillosCerrados(
+                    controlador.consultarPasillosCerrados()
+            );
+
+            actualizarRuta();
+            actualizarConectividad(conectividad);
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            Alert alerta = new Alert(Alert.AlertType.WARNING);
+            alerta.initOwner(getScene().getWindow());
+            alerta.setTitle("Gestión de pasillos");
+            alerta.setHeaderText("No se pudo cambiar el pasillo");
+            alerta.setContentText(e.getMessage());
+            alerta.showAndWait();
+        }
+    }
+
+    private void actualizarConectividad(Label etiqueta) {
+        String[] aislados =
+                controlador.consultarApartamentosInalcanzables();
+
+        etiqueta.setText(
+                aislados.length == 0
+                        ? "Todos los apartamentos son accesibles desde recepción."
+                        : "Apartamentos inalcanzables desde recepción: "
+                        + String.join(", ", aislados)
+        );
     }
 }
