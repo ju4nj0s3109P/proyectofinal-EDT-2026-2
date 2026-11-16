@@ -701,4 +701,8 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         }
         titulo.setText(encabezado);
     }
+
+    public void actualizarReservas() {
+        vistaReservas.actualizar();
+    }
 }
