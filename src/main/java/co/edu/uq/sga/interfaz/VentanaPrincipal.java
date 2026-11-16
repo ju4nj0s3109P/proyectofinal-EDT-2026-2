@@ -7,7 +7,7 @@ import co.edu.uq.sga.servicios.ServicioMapa.Ubicacion;
 import co.edu.uq.sga.servicios.ServicioMapa.Pasillo;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
 import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
-
+import co.edu.uq.sga.servicios.ServicioPanelReservas;
 
 
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -42,6 +42,11 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     private final ToggleButton botonUbicaciones =
             new ToggleButton("Ubicaciones");
 
+    private final PanelReservas vistaReservas;
+
+    private final ToggleButton botonReservas =
+            new ToggleButton("Reservas");
+
     private final PanelMapa mapa;
 
     private final StackPane vistas = new StackPane();
@@ -59,10 +64,13 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     private final ToggleButton botonPreparacion =
             new ToggleButton("Preparación");
 
-    public VentanaPrincipal(ServicioMapa servicio, ServicioApartamentos servicioApartamentos, ServicioPanelPreparacion servicioPreparacion) {
+    public VentanaPrincipal(ServicioMapa servicio,
+                            ServicioApartamentos servicioApartamentos,
+                            ServicioPanelPreparacion servicioPreparacion,
+                            ServicioPanelReservas servicioPanelReservas
+    ) {
         this.controlador = new ControladorMapa(servicio, this);
         this.servicioApartamentos = servicioApartamentos;
-
 
         getStyleClass().add("ventana");
 
@@ -91,13 +99,15 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                     mostrarVista(true);
                 }
         );
+        vistaReservas = new PanelReservas(servicioPanelReservas);
+
         setLeft(crearBarraLateral());
         vistaTablero = new PanelTablero(servicioApartamentos);
 
         vistaMapa = crearVistaMapa();
         vistaTabla = crearTabla(ubicaciones);
 
-        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla, vistaPreparacion);
+        vistas.getChildren().addAll(vistaTablero, vistaMapa, vistaTabla, vistaPreparacion, vistaReservas);
 
         VBox contenido = new VBox(24, crearEncabezado(), vistas);
         contenido.getStyleClass().add("contenido");
@@ -133,9 +143,11 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonUbicaciones.setId("nav-ubicaciones");
         botonTablero.setToggleGroup(grupo);
         botonTablero.setId("nav-tablero");
+        botonReservas.setToggleGroup(grupo);
+        botonReservas.setId("nav-reservas");
 
         for (ToggleButton boton :
-                new ToggleButton[]{botonTablero, botonMapa, botonUbicaciones, botonPreparacion}) {
+                new ToggleButton[]{botonTablero, botonReservas, botonMapa, botonUbicaciones, botonPreparacion}) {
             boton.getStyleClass().add("navegacion");
             boton.setMaxWidth(Double.MAX_VALUE);
             boton.setAlignment(Pos.CENTER_LEFT);
@@ -145,8 +157,11 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         botonMapa.setOnAction(evento -> mostrarVista(true));
         botonUbicaciones.setOnAction(evento -> mostrarVista(false));
         botonPreparacion.setOnAction(evento -> mostrarPreparacion());
+        botonReservas.setOnAction(evento -> mostrarReservas());
+        botonReservas.setToggleGroup(grupo);
 
-        VBox menu = new VBox(8,botonTablero, botonMapa, botonUbicaciones, botonPreparacion);
+
+        VBox menu = new VBox(8,botonTablero, botonReservas, botonMapa, botonUbicaciones, botonPreparacion);
 
         Region espacio = new Region();
         VBox.setVgrow(espacio, Priority.ALWAYS);
@@ -385,6 +400,10 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
     private void mostrarVista(boolean mostrarMapa) {
 
+        vistaReservas.setVisible(false);
+        vistaReservas.setManaged(false);
+        botonReservas.setSelected(false);
+
         if (mostrarMapa) {
             mapa.actualizarEstados(servicioApartamentos.consultarTodos());
             mapa.actualizarPasillosCerrados(
@@ -419,6 +438,10 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
     private void mostrarTablero() {
 
+        vistaReservas.setVisible(false);
+        vistaReservas.setManaged(false);
+        botonReservas.setSelected(false);
+
         vistaPreparacion.setVisible(false);
         vistaPreparacion.setManaged(false);
         botonPreparacion.setSelected(false);
@@ -449,7 +472,10 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
     }
 
     private void mostrarPreparacion() {
-        vistaPreparacion.actualizar();
+
+        vistaReservas.setVisible(false);
+        vistaReservas.setManaged(false);
+
 
         vistaTablero.setVisible(false);
         vistaTablero.setManaged(false);
@@ -463,10 +489,13 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         vistaPreparacion.setVisible(true);
         vistaPreparacion.setManaged(true);
 
+        vistaPreparacion.actualizar();
+
         botonTablero.setSelected(false);
         botonMapa.setSelected(false);
         botonUbicaciones.setSelected(false);
         botonPreparacion.setSelected(true);
+        botonReservas.setSelected(false);
 
         titulo.setText("Preparación de apartamentos");
     }
@@ -586,5 +615,27 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                         : "Apartamentos inalcanzables desde recepción: "
                         + String.join(", ", aislados)
         );
+    }
+
+    private void mostrarReservas() {
+        vistaReservas.actualizar();
+
+        for (Node vista : new Node[]{
+                vistaTablero, vistaMapa, vistaTabla, vistaPreparacion
+        }) {
+            vista.setVisible(false);
+            vista.setManaged(false);
+        }
+
+        vistaReservas.setVisible(true);
+        vistaReservas.setManaged(true);
+
+        botonTablero.setSelected(false);
+        botonMapa.setSelected(false);
+        botonUbicaciones.setSelected(false);
+        botonPreparacion.setSelected(false);
+        botonReservas.setSelected(true);
+
+        titulo.setText("Reservas del alojamiento");
     }
 }
