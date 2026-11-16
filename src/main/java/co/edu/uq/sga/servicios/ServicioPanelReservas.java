@@ -35,6 +35,22 @@ public final class ServicioPanelReservas {
             int ocupantes
     ) {}
 
+    public record ApartamentoDisponible(
+            String codigo,
+            String nombre,
+            int capacidad,
+            int dormitorios,
+            BigDecimal tarifaBase
+    ) {
+        @Override
+        public String toString() {
+            return codigo + " · " + nombre
+                    + " · Capacidad: " + capacidad
+                    + " · Dormitorios: " + dormitorios
+                    + " · Tarifa base/persona: $" + tarifaBase.toPlainString();
+        }
+    }
+
     private final CatalogoApartamentosArbol apartamentos;
     private final CatalogoHuespedesArbol huespedes;
     private final CatalogoReservasArbol catalogo;
@@ -42,6 +58,7 @@ public final class ServicioPanelReservas {
     private final ServicioPanelPreparacion preparacion;
     private final ServicioFolios folios;
     private final ServicioTarifas tarifas;
+    private final ServicioDisponibilidad disponibilidad;
 
     public ServicioPanelReservas(
             CatalogoApartamentosArbol apartamentos,
@@ -50,7 +67,8 @@ public final class ServicioPanelReservas {
             ServicioReservas reservas,
             ServicioPanelPreparacion preparacion,
             ServicioFolios folios,
-            ServicioTarifas tarifas
+            ServicioTarifas tarifas,
+            ServicioDisponibilidad disponibilidad
     ) {
         this.apartamentos = Objects.requireNonNull(apartamentos);
         this.huespedes = Objects.requireNonNull(huespedes);
@@ -59,6 +77,7 @@ public final class ServicioPanelReservas {
         this.preparacion = Objects.requireNonNull(preparacion);
         this.folios = Objects.requireNonNull(folios);
         this.tarifas = Objects.requireNonNull(tarifas);
+        this.disponibilidad = Objects.requireNonNull(disponibilidad);
     }
 
     public void registrarDirecta(
@@ -145,6 +164,46 @@ public final class ServicioPanelReservas {
         );
 
         folios.abrir(reserva);
+    }
+
+    public ApartamentoDisponible[] buscarDisponibles(
+            LocalDate entrada,
+            LocalDate salida,
+            int personas,
+            String orden
+    ) {
+        var criterio = switch (orden) {
+            case "Tarifa base" -> ComparadoresApartamento.porPrecio();
+            case "Capacidad" -> ComparadoresApartamento.porCapacidad();
+            case "Dormitorios" -> ComparadoresApartamento.porDormitorios();
+            default -> throw new IllegalArgumentException(
+                    "Selecciona un criterio de orden."
+            );
+        };
+
+        var encontrados = disponibilidad.buscarDisponibles(
+                apartamentos.listarPorCodigo(),
+                new Estancia(entrada, salida),
+                personas,
+                criterio
+        );
+
+        ApartamentoDisponible[] resultado =
+                new ApartamentoDisponible[encontrados.tamanio()];
+
+        int indice = 0;
+
+        for (var apartamento : encontrados) {
+            resultado[indice++] = new ApartamentoDisponible(
+                    apartamento.getCodigo(),
+                    apartamento.getNombre(),
+                    apartamento.getCapacidadMaxima(),
+                    apartamento.getNumeroDormitorios(),
+                    apartamento.getTarifaBaja()
+            );
+        }
+
+        return resultado;
     }
 
     public ServicioTarifas.Cotizacion cotizarBorrador(

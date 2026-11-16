@@ -7,6 +7,7 @@ import co.edu.uq.sga.adaptadores.CatalogoReservasArbol;
 import co.edu.uq.sga.adaptadores.IndiceReservasArbol;
 import co.edu.uq.sga.adaptadores.RepositorioFoliosArbol;
 import co.edu.uq.sga.adaptadores.PilaDeshacerFoliosArbol;
+import co.edu.uq.sga.adaptadores.ReservasDelIndice;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
 import co.edu.uq.sga.persistencia.CargadorApartamentos;
 import co.edu.uq.sga.persistencia.CargadorPreparaciones;
@@ -19,6 +20,7 @@ import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
 import co.edu.uq.sga.servicios.ServicioReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioFolios;
+import co.edu.uq.sga.servicios.ServicioDisponibilidad;
 
 import java.time.LocalDate;
 
@@ -105,6 +107,9 @@ public final class AplicacionSGA extends Application {
             var indiceReservas = new IndiceReservasArbol();
             var catalogoReservas = new CatalogoReservasArbol();
             var servicioReservas = new ServicioReservas(indiceReservas);
+            var servicioDisponibilidad = new ServicioDisponibilidad(
+                    new ReservasDelIndice(indiceReservas)
+            );
 
             this.servicioPreparacion = new ServicioPanelPreparacion(
                     catalogo,
@@ -124,7 +129,8 @@ public final class AplicacionSGA extends Application {
                     servicioReservas,
                     servicioPreparacion,
                     servicioFolios,
-                    servicioTarifas
+                    servicioTarifas,
+                    servicioDisponibilidad
             );
 
             var tareasIniciales = new CargadorPreparaciones().cargar(

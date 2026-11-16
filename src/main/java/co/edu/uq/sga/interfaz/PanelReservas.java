@@ -5,6 +5,7 @@ import co.edu.uq.sga.controladores.ControladorReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ResumenReserva;
+import co.edu.uq.sga.servicios.ServicioPanelReservas.ApartamentoDisponible;
 import co.edu.uq.sga.servicios.ServicioTarifas;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
@@ -389,6 +390,112 @@ public final class PanelReservas extends VBox
         );
         aviso.setWrapText(true);
 
+        ComboBox<String> orden = new ComboBox<>();
+        orden.getItems().addAll("Tarifa base", "Capacidad", "Dormitorios");
+        orden.setValue("Tarifa base");
+
+        Button buscar = new Button("Buscar disponibles");
+        buscar.getStyleClass().add("accion-secundaria");
+
+        buscar.setOnAction(evento -> {
+            error.setText("");
+
+            if (ocupantes.getItems().isEmpty()) {
+                error.setText(
+                        "Agrega los ocupantes para buscar apartamentos con cupo suficiente."
+                );
+                return;
+            }
+
+            controlador.buscarDisponibles(
+                    entrada.getValue(),
+                    salida.getValue(),
+                    ocupantes.getItems().size(),
+                    orden.getValue()
+            ).ifPresent(disponibles -> {
+                if (disponibles.length == 0) {
+                    error.setText(
+                            "No hay un apartamento individual disponible "
+                                    + "con capacidad para todo el grupo en esas fechas."
+                    );
+                    return;
+                }
+
+                ListView<ApartamentoDisponible> opciones = new ListView<>();
+                opciones.getItems().setAll(disponibles);
+                opciones.setPrefHeight(240);
+
+                Dialog<ApartamentoDisponible> selector = new Dialog<>();
+                selector.initOwner(
+                        dialogo.getDialogPane().getScene().getWindow()
+                );
+                selector.setTitle("Apartamentos disponibles");
+                selector.setHeaderText(
+                        "Selecciona un apartamento · "
+                                + ocupantes.getItems().size() + " ocupantes"
+                );
+
+                Label nota = new Label(
+                        "La tarifa mostrada es la base por persona y noche. "
+                                + "Pulsa Cotizar después de seleccionar para ver "
+                                + "el total según las temporadas."
+                );
+                nota.setWrapText(true);
+                nota.getStyleClass().add("texto-suave");
+
+                selector.getDialogPane().setContent(
+                        new VBox(12, opciones, nota)
+                );
+                selector.getDialogPane().setPrefWidth(760);
+                selector.setResizable(true);
+
+                ButtonType elegir = new ButtonType(
+                        "Seleccionar",
+                        ButtonBar.ButtonData.OK_DONE
+                );
+
+                selector.getDialogPane().getButtonTypes().addAll(
+                        elegir, ButtonType.CANCEL
+                );
+
+                Button aceptar = (Button)
+                        selector.getDialogPane().lookupButton(elegir);
+
+                aceptar.getStyleClass().add("accion-principal");
+                aceptar.disableProperty().bind(
+                        opciones.getSelectionModel().selectedItemProperty().isNull()
+                );
+
+                selector.getDialogPane()
+                        .lookupButton(ButtonType.CANCEL)
+                        .getStyleClass()
+                        .add("accion-secundaria");
+
+                selector.setResultConverter(boton ->
+                        boton == elegir
+                                ? opciones.getSelectionModel().getSelectedItem()
+                                : null
+                );
+
+                selector.showAndWait().ifPresent(seleccionado ->
+                        apartamentos.setText(seleccionado.codigo())
+                );
+            });
+        });
+
+        Label instruccionBusqueda = new Label(
+                "Completa las fechas y agrega los ocupantes; "
+                        + "después busca un apartamento disponible."
+        );
+        instruccionBusqueda.setWrapText(true);
+        instruccionBusqueda.getStyleClass().add("texto-suave");
+
+        VBox busqueda = new VBox(
+                8,
+                instruccionBusqueda,
+                new FlowPane(10, 10, new Label("Ordenar por:"), orden, buscar)
+        );
+
         VBox contenido = new VBox(
                 12,
                 datos,
@@ -397,6 +504,7 @@ public final class PanelReservas extends VBox
                 new HBox(10, nombre, nacimiento),
                 new HBox(10, agregar, quitar),
                 ocupantes,
+                busqueda,
                 error
         );
 

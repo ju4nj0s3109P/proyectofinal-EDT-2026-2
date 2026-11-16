@@ -4,6 +4,7 @@ import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ResumenReserva;
 import co.edu.uq.sga.servicios.ServicioTarifas;
+import co.edu.uq.sga.servicios.ServicioPanelReservas.ApartamentoDisponible;
 import java.util.Optional;
 
 import java.time.LocalDate;
@@ -91,6 +92,22 @@ public final class ControladorReservas {
         try {
             return Optional.of(servicio.cotizarBorrador(
                     apartamentos, ocupantes, entrada, salida
+            ));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+            return Optional.empty();
+        }
+    }
+    
+    public Optional<ApartamentoDisponible[]> buscarDisponibles(
+            LocalDate entrada,
+            LocalDate salida,
+            int personas,
+            String orden
+    ) {
+        try {
+            return Optional.of(servicio.buscarDisponibles(
+                    entrada, salida, personas, orden
             ));
         } catch (IllegalArgumentException | IllegalStateException e) {
             vista.mostrarError(e.getMessage());
