@@ -89,7 +89,7 @@ public final class PanelPortalHuespedes extends BorderPane {
         }
         String codigo = seleccionado.split(" · ", 2)[0];
         Apartamento apartamento = null;
-        for (Apartamento a : apartamentos.consultarTodos()) {
+        for (Apartamento a : apartamentos.listarPorCodigo()) {
             if (a.getCodigo().equals(codigo)) { apartamento = a; break; }
         }
         if (apartamento == null) {
