@@ -9,6 +9,8 @@ import co.edu.uq.sga.dominio.modelo.AsignacionApartamento;
 import co.edu.uq.sga.dominio.modelo.Estancia;
 import co.edu.uq.sga.dominio.modelo.Ocupante;
 import co.edu.uq.sga.dominio.modelo.Reserva;
+import co.edu.uq.sga.dominio.modelo.Folio;
+import java.math.BigDecimal;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,19 +40,22 @@ public final class ServicioPanelReservas {
     private final CatalogoReservasArbol catalogo;
     private final ServicioReservas reservas;
     private final ServicioPanelPreparacion preparacion;
+    private final ServicioFolios folios;
 
     public ServicioPanelReservas(
             CatalogoApartamentosArbol apartamentos,
             CatalogoHuespedesArbol huespedes,
             CatalogoReservasArbol catalogo,
             ServicioReservas reservas,
-            ServicioPanelPreparacion preparacion
+            ServicioPanelPreparacion preparacion,
+            ServicioFolios folios
     ) {
         this.apartamentos = Objects.requireNonNull(apartamentos);
         this.huespedes = Objects.requireNonNull(huespedes);
         this.catalogo = Objects.requireNonNull(catalogo);
         this.reservas = Objects.requireNonNull(reservas);
         this.preparacion = Objects.requireNonNull(preparacion);
+        this.folios = Objects.requireNonNull(folios);
     }
 
     public void registrarDirecta(
@@ -135,6 +140,36 @@ public final class ServicioPanelReservas {
                 entrada.atTime(horaLlegada),
                 reservas
         );
+
+        folios.abrir(reserva);
+    }
+
+    public Folio consultarFolio(String codigo) {
+        buscarReserva(codigo);
+        return folios.obtener(codigo);
+    }
+
+    public void registrarCargo(
+            String codigo, BigDecimal monto, String descripcion
+    ) {
+        buscarReserva(codigo);
+        folios.registrarCargo(
+                codigo, monto, descripcion, LocalDateTime.now()
+        );
+    }
+
+    public void registrarPago(
+            String codigo, BigDecimal monto, String descripcion
+    ) {
+        buscarReserva(codigo);
+        folios.registrarPago(
+                codigo, monto, descripcion, LocalDateTime.now()
+        );
+    }
+
+    public void deshacerMovimiento(String codigo) {
+        buscarReserva(codigo);
+        folios.deshacerUltima(codigo, LocalDateTime.now());
     }
 
     public void registrarCheckIn(String folio) {

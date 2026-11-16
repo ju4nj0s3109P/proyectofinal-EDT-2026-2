@@ -5,6 +5,8 @@ import co.edu.uq.sga.adaptadores.CalculadorRutasGrafo;
 import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
 import co.edu.uq.sga.adaptadores.CatalogoReservasArbol;
 import co.edu.uq.sga.adaptadores.IndiceReservasArbol;
+import co.edu.uq.sga.adaptadores.RepositorioFoliosArbol;
+import co.edu.uq.sga.adaptadores.PilaDeshacerFoliosArbol;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
 import co.edu.uq.sga.persistencia.CargadorApartamentos;
 import co.edu.uq.sga.persistencia.CargadorPreparaciones;
@@ -14,6 +16,7 @@ import co.edu.uq.sga.servicios.ServicioApartamentos;
 import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
 import co.edu.uq.sga.servicios.ServicioReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
+import co.edu.uq.sga.servicios.ServicioFolios;
 
 import java.time.LocalDate;
 
@@ -102,12 +105,18 @@ public final class AplicacionSGA extends Application {
                     LocalDate.now()
             );
 
+            var servicioFolios = new ServicioFolios(
+                    new RepositorioFoliosArbol(),
+                    new PilaDeshacerFoliosArbol()
+            );
+
             servicioPanelReservas = new ServicioPanelReservas(
                     catalogo,
                     catalogoHuespedes,
                     catalogoReservas,
                     servicioReservas,
-                    servicioPreparacion
+                    servicioPreparacion,
+                    servicioFolios
             );
 
             var tareasIniciales = new CargadorPreparaciones().cargar(
