@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import co.edu.uq.sga.adaptadores.ColaSolicitudesExternasEnCola;
+import co.edu.uq.sga.adaptadores.IndiceReservasArbol;
+import co.edu.uq.sga.adaptadores.RegistroConflictosEnLista;
 import co.edu.uq.sga.dominio.contratos.ColaSolicitudesExternas;
 import co.edu.uq.sga.dominio.contratos.IndiceReservas;
 import co.edu.uq.sga.dominio.contratos.RegistroConflictosReservas;
@@ -73,6 +76,56 @@ class ServicioSolicitudesExternasTest {
         assertThrows(IllegalStateException.class, () -> servicio.encolar(externa));
         assertThrows(IllegalArgumentException.class,
                 () -> servicio.encolar(crearReserva("F-5", "A-5", CanalReserva.PORTAL)));
+    }
+
+    @Test
+    void procesaEnFifoConLaColaYElRegistroRealesYGuardaCadaRechazo() {
+        IndiceReservasArbol indice = new IndiceReservasArbol();
+        ColaSolicitudesExternasEnCola cola = new ColaSolicitudesExternasEnCola();
+        RegistroConflictosEnLista registro = new RegistroConflictosEnLista();
+        ServicioSolicitudesExternas servicio = new ServicioSolicitudesExternas(
+                new ServicioReservas(indice), cola, registro);
+        Reserva primera = crearReserva("F-6", "A-6");
+        Reserva choca = crearReserva("F-7", "A-6");
+        Reserva otra = crearReserva("F-8", "A-7");
+        servicio.encolar(primera);
+        servicio.encolar(choca);
+        servicio.encolar(otra);
+        LocalDateTime ahora = LocalDateTime.of(2026, 10, 26, 15, 0);
+
+        assertEquals(3, cola.tamanio());
+        assertEquals("F-6", servicio.procesarSiguiente(ahora).orElseThrow().reserva().getFolio());
+        assertFalse(servicio.procesarSiguiente(ahora).orElseThrow().aceptada(),
+                "la segunda pide la misma noche del mismo apartamento");
+        assertTrue(servicio.procesarSiguiente(ahora).orElseThrow().aceptada());
+        assertTrue(servicio.procesarSiguiente(ahora).isEmpty());
+
+        assertEquals(EstadoReserva.CONFIRMADA, primera.getEstado());
+        assertEquals(EstadoReserva.RECHAZADA, choca.getEstado());
+        assertEquals(1, registro.tamanio(), "el rechazo queda guardado para el reporte");
+        assertEquals("F-7", registro.conflictos().obtener(0).getFolioReserva());
+        assertEquals(1, registro.conflictosDe("A-6").tamanio());
+        assertTrue(registro.conflictosDe("A-7").estaVacia());
+    }
+
+    @Test
+    void registraComoConflictoLaSolicitudQueDejoDeSerProcesable() {
+        RegistroConflictosEnLista registro = new RegistroConflictosEnLista();
+        ServicioSolicitudesExternas servicio = new ServicioSolicitudesExternas(
+                new ServicioReservas(new IndiceReservasArbol()),
+                new ColaSolicitudesExternasEnCola(), registro);
+        Reserva reserva = crearReserva("F-9", "A-9");
+        servicio.encolar(reserva);
+        reserva.cancelar();
+
+        var resultado = servicio.procesarSiguiente(
+                LocalDateTime.of(2026, 10, 26, 15, 0)).orElseThrow();
+
+        assertFalse(resultado.aceptada());
+        assertEquals("solicitud ya no procesable", resultado.conflicto().getMotivo());
+        assertEquals(1, registro.tamanio(), "la solicitud no se pierde sin dejar rastro");
+        assertEquals(EstadoReserva.CANCELADA, reserva.getEstado());
+        assertThrows(IllegalArgumentException.class, () -> registro.registrar(null));
     }
 
     private Reserva crearReserva(String folio, String codigoApartamento) {

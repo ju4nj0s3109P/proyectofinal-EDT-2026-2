@@ -25,4 +25,9 @@ public class PilaDeshacerFoliosArbol implements PilaDeshacerFolios {
                 .filter(pila -> !pila.estaVacia())
                 .map(Pila::desapilar);
     }
+
+    @Override
+    public void limpiar(String codigoFolio) {
+        pilas.obtener(codigoFolio).ifPresent(Pila::limpiar);
+    }
 }
