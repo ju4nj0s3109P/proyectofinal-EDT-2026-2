@@ -59,7 +59,9 @@ public final class PanelPreparacion extends VBox
                 new TableColumn<>("Próxima llegada");
         llegada.setCellValueFactory(celda ->
                 new ReadOnlyStringWrapper(
-                        celda.getValue().llegada().format(FORMATO)
+                        celda.getValue().llegada() == null
+                                ? "Sin próxima reserva"
+                                : celda.getValue().llegada().format(FORMATO)
                 )
         );
 

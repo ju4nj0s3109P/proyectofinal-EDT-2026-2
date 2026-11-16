@@ -37,17 +37,20 @@ public final class ServicioPanelReservas {
     private final CatalogoHuespedesArbol huespedes;
     private final CatalogoReservasArbol catalogo;
     private final ServicioReservas reservas;
+    private final ServicioPanelPreparacion preparacion;
 
     public ServicioPanelReservas(
             CatalogoApartamentosArbol apartamentos,
             CatalogoHuespedesArbol huespedes,
             CatalogoReservasArbol catalogo,
-            ServicioReservas reservas
+            ServicioReservas reservas,
+            ServicioPanelPreparacion preparacion
     ) {
         this.apartamentos = Objects.requireNonNull(apartamentos);
         this.huespedes = Objects.requireNonNull(huespedes);
         this.catalogo = Objects.requireNonNull(catalogo);
         this.reservas = Objects.requireNonNull(reservas);
+        this.preparacion = Objects.requireNonNull(preparacion);
     }
 
     public void registrarDirecta(
@@ -139,7 +142,52 @@ public final class ServicioPanelReservas {
     }
 
     public void registrarCheckOut(String folio) {
-        reservas.registrarCheckOut(buscarReserva(folio));
+        Reserva reserva = buscarReserva(folio);
+
+        reservas.registrarCheckOut(reserva);
+
+        for (var asignacion : reserva.getAsignaciones()) {
+            String codigo = asignacion.getApartamento().getCodigo();
+
+            preparacion.encolarPendiente(
+                    codigo,
+                    buscarProximaLlegada(codigo)
+            );
+        }
+    }
+
+    private LocalDateTime buscarProximaLlegada(String codigoApartamento) {
+        LocalDateTime proxima = null;
+        LocalDate hoy = preparacion.consultarFechaOperacion();
+
+        for (var registro : catalogo.listar()) {
+            Reserva reserva = registro.reserva();
+
+            if (reserva.getEstado() != EstadoReserva.CONFIRMADA
+                    && reserva.getEstado() != EstadoReserva.PENDIENTE) {
+                continue;
+            }
+
+            LocalDateTime llegada = registro.llegadaEstimada();
+
+            if (llegada.toLocalDate().isBefore(hoy)) {
+                continue;
+            }
+
+            for (var asignacion : reserva.getAsignaciones()) {
+                if (asignacion.getApartamento().getCodigo()
+                        .equals(codigoApartamento)) {
+
+                    if (proxima == null || llegada.isBefore(proxima)) {
+                        proxima = llegada;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        return proxima;
     }
 
     private Reserva buscarReserva(String folio) {

@@ -3,6 +3,7 @@ package co.edu.uq.sga.dominio.modelo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import co.edu.uq.sga.dominio.enums.EstadoTareaPreparacion;
 import java.math.BigDecimal;
@@ -29,8 +30,6 @@ class TareaPreparacionTest {
                 () -> new TareaPreparacion("T-1", null, LocalDateTime.now(), llegada(10)));
         assertThrows(IllegalArgumentException.class,
                 () -> new TareaPreparacion("T-1", crearApartamento(), null, llegada(10)));
-        assertThrows(IllegalArgumentException.class,
-                () -> new TareaPreparacion("T-1", crearApartamento(), LocalDateTime.now(), null));
         TareaPreparacion tarea = crearTarea();
         assertThrows(IllegalStateException.class, tarea::completar);
         tarea.iniciar();
@@ -48,6 +47,39 @@ class TareaPreparacionTest {
         var comparador = TareaPreparacion.comparadorPorPrioridad(hoy);
         assertTrue(comparador.compare(llegadaTemprana, llegadaTardia) < 0);
         assertTrue(comparador.compare(llegadaTardia, llegadaManana) < 0);
+
+
+    }
+
+    @Test
+    void permitePrepararSinProximaReserva() {
+        TareaPreparacion tarea = crearTarea("T-SIN", "A-1", null);
+
+        assertNull(tarea.getFechaHoraLlegada());
+        assertEquals(EstadoTareaPreparacion.ENCOLADA, tarea.getEstado());
+
+        tarea.iniciar();
+        tarea.completar();
+
+        assertEquals(EstadoTareaPreparacion.COMPLETADA, tarea.getEstado());
+    }
+
+    @Test
+    void dejaSinProximaReservaDespuesDeLasLlegadasProgramadas() {
+        LocalDate hoy = LocalDate.of(2026, 11, 14);
+
+        TareaPreparacion sinReserva = crearTarea("T-SIN", "A-1", null);
+        TareaPreparacion paraHoy = crearTarea("T-HOY", "A-2", llegada(10));
+        TareaPreparacion paraManana = crearTarea(
+                "T-MANANA", "A-3", hoy.plusDays(1).atTime(8, 0)
+        );
+
+        var comparador = TareaPreparacion.comparadorPorPrioridad(hoy);
+
+        assertTrue(comparador.compare(paraHoy, sinReserva) < 0);
+        assertTrue(comparador.compare(paraManana, sinReserva) < 0);
+        assertTrue(comparador.compare(sinReserva, paraManana) > 0);
+        assertEquals(0, comparador.compare(sinReserva, sinReserva));
     }
 
     private TareaPreparacion crearTarea() {

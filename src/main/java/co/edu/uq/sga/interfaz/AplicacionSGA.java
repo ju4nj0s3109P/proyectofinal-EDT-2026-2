@@ -96,17 +96,18 @@ public final class AplicacionSGA extends Application {
             var catalogoReservas = new CatalogoReservasArbol();
             var servicioReservas = new ServicioReservas(indiceReservas);
 
-            servicioPanelReservas = new ServicioPanelReservas(
-                    catalogo,
-                    catalogoHuespedes,
-                    catalogoReservas,
-                    servicioReservas
-            );
-
             this.servicioPreparacion = new ServicioPanelPreparacion(
                     catalogo,
                     new CalculadorRutasGrafo(mapa.grafo()),
                     LocalDate.now()
+            );
+
+            servicioPanelReservas = new ServicioPanelReservas(
+                    catalogo,
+                    catalogoHuespedes,
+                    catalogoReservas,
+                    servicioReservas,
+                    servicioPreparacion
             );
 
             var tareasIniciales = new CargadorPreparaciones().cargar(
