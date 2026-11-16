@@ -199,7 +199,7 @@ public final class PanelReservas extends VBox
 
     private void mostrarCotizacion(
             ResumenReserva reserva,
-            ServicioTarifas.Cotizacion cotizacion
+            ServicioPanelReservas.CotizacionReserva cotizacion
     ) {
         mostrarCotizacion(
                 getScene().getWindow(),
@@ -216,7 +216,7 @@ public final class PanelReservas extends VBox
             String referencia,
             String apartamentos,
             int cantidadOcupantes,
-            ServicioTarifas.Cotizacion cotizacion
+            ServicioPanelReservas.CotizacionReserva cotizacion
     ) {
         NumberFormat moneda = NumberFormat.getCurrencyInstance(
                 Locale.forLanguageTag("es-CO")
@@ -240,23 +240,37 @@ public final class PanelReservas extends VBox
 
         VBox noches = new VBox(10);
 
-        for (var noche : cotizacion.getDesglose()) {
-            Label fecha = new Label(
-                    noche.fecha().format(formato)
-                            + " · Temporada " + noche.temporada()
+        for (var apartamento : cotizacion.apartamentos()) {
+            Label encabezado = new Label(
+                    apartamento.codigo()
+                            + " · " + apartamento.ocupantes() + " ocupantes"
+                            + " · Subtotal: "
+                            + moneda.format(apartamento.detalle().getTotal())
             );
-            fecha.getStyleClass().add("campo");
+            encabezado.setWrapText(true);
+            encabezado.getStyleClass().add("subtitulo");
 
-            Label calculo = new Label(
-                    noche.ocupantesPagantes() + " personas que pagan × "
-                            + moneda.format(noche.tarifaPorPersona())
-                            + " = " + moneda.format(noche.subtotal())
-            );
-            calculo.setWrapText(true);
+            VBox bloque = new VBox(10, encabezado);
+            bloque.getStyleClass().add("detalle");
 
-            VBox detalle = new VBox(6, fecha, calculo);
-            detalle.getStyleClass().add("detalle");
-            noches.getChildren().add(detalle);
+            for (var noche : apartamento.detalle().getDesglose()) {
+                Label fecha = new Label(
+                        noche.fecha().format(formato)
+                                + " · Temporada " + noche.temporada()
+                );
+                fecha.getStyleClass().add("campo");
+
+                Label calculo = new Label(
+                        noche.ocupantesPagantes() + " personas que pagan × "
+                                + moneda.format(noche.tarifaPorPersona())
+                                + " = " + moneda.format(noche.subtotal())
+                );
+                calculo.setWrapText(true);
+
+                bloque.getChildren().add(new VBox(4, fecha, calculo));
+            }
+
+            noches.getChildren().add(bloque);
         }
 
         ScrollPane scroll = new ScrollPane(noches);

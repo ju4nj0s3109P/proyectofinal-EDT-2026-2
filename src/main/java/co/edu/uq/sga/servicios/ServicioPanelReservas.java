@@ -56,6 +56,35 @@ public final class ServicioPanelReservas {
         }
     }
 
+    public record CotizacionApartamento(
+            String codigo,
+            int ocupantes,
+            ServicioTarifas.Cotizacion detalle
+    ) {}
+
+    public record CotizacionReserva(
+            BigDecimal total,
+            int noches,
+            CotizacionApartamento[] apartamentos
+    ) {
+        public CotizacionReserva {
+            apartamentos = apartamentos.clone();
+        }
+
+        @Override
+        public CotizacionApartamento[] apartamentos() {
+            return apartamentos.clone();
+        }
+
+        public BigDecimal getTotal() {
+            return total;
+        }
+
+        public int cantidadNoches() {
+            return noches;
+        }
+    }
+
     private final CatalogoApartamentosArbol apartamentos;
     private final CatalogoHuespedesArbol huespedes;
     private final CatalogoReservasArbol catalogo;
@@ -232,34 +261,15 @@ public final class ServicioPanelReservas {
         return resultado;
     }
 
-    public ServicioTarifas.Cotizacion cotizarBorrador(
+    public CotizacionReserva cotizarBorrador(
             String[] codigos,
             DatosOcupante[] datos,
             LocalDate entrada,
             LocalDate salida
     ) {
-        if (codigos == null || codigos.length != 1) {
-            throw new IllegalArgumentException(
-                    "Por ahora, selecciona un solo apartamento para cotizar."
-            );
-        }
-
-        String codigo = codigos[0].trim();
-
-        var apartamento = apartamentos.buscarPorCodigo(codigo)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No existe el apartamento " + codigo
-                ));
-
         if (datos == null || datos.length == 0) {
             throw new IllegalArgumentException(
                     "Agrega los ocupantes antes de cotizar."
-            );
-        }
-
-        if (datos.length > apartamento.getCapacidadMaxima()) {
-            throw new IllegalArgumentException(
-                    "Los ocupantes superan la capacidad del apartamento."
             );
         }
 
@@ -281,31 +291,75 @@ public final class ServicioPanelReservas {
             ocupantes[i].calcularEdadEn(entrada);
         }
 
-        var asignaciones = construirAsignaciones(codigos, datos, ocupantes);
-
-        return tarifas.cotizar(
-                asignaciones[0].getApartamento(),
-                estancia,
-                asignaciones[0].getOcupantes()
+        AsignacionApartamento[] asignaciones = construirAsignaciones(
+                codigos, datos, ocupantes
         );
+
+        return cotizarAsignaciones(estancia, asignaciones);
     }
 
-    public ServicioTarifas.Cotizacion cotizarReserva(String codigo) {
+    public CotizacionReserva cotizarReserva(String codigo) {
         Reserva reserva = buscarReserva(codigo);
-        var asignaciones = reserva.getAsignaciones();
+        AsignacionApartamento[] asignaciones = reserva.getAsignaciones();
 
-        if (asignaciones.length != 1) {
-            throw new IllegalStateException(
-                    "Para cotizar varios apartamentos primero debemos "
-                            + "distribuir los ocupantes entre ellos."
+        // Compatibilidad con reservas antiguas de un solo apartamento.
+        if (asignaciones.length == 1
+                && !asignaciones[0].tieneDistribucion()) {
+            asignaciones[0] = new AsignacionApartamento(
+                    asignaciones[0].getApartamento(),
+                    reserva.getOcupantes()
             );
         }
 
-        return tarifas.cotizar(
-                asignaciones[0].getApartamento(),
-                reserva.getEstancia(),
-                reserva.getOcupantes()
-        );
+        for (var asignacion : asignaciones) {
+            if (!asignacion.tieneDistribucion()) {
+                throw new IllegalStateException(
+                        "Esta reserva no tiene guardada la distribución "
+                                + "de ocupantes por apartamento."
+                );
+            }
+        }
+
+        return cotizarAsignaciones(reserva.getEstancia(), asignaciones);
+    }
+
+    private CotizacionReserva cotizarAsignaciones(
+            Estancia estancia,
+            AsignacionApartamento[] asignaciones
+    ) {
+        if (asignaciones == null || asignaciones.length == 0) {
+            throw new IllegalArgumentException(
+                    "Selecciona al menos un apartamento."
+            );
+        }
+
+        CotizacionApartamento[] detalles =
+                new CotizacionApartamento[asignaciones.length];
+
+        BigDecimal total = BigDecimal.ZERO;
+        int noches = 0;
+
+        for (int i = 0; i < asignaciones.length; i++) {
+            var asignacion = asignaciones[i];
+            Ocupante[] grupo = asignacion.getOcupantes();
+
+            var cotizacion = tarifas.cotizar(
+                    asignacion.getApartamento(),
+                    estancia,
+                    grupo
+            );
+
+            detalles[i] = new CotizacionApartamento(
+                    asignacion.getApartamento().getCodigo(),
+                    grupo.length,
+                    cotizacion
+            );
+
+            total = total.add(cotizacion.getTotal());
+            noches = cotizacion.cantidadNoches();
+        }
+
+        return new CotizacionReserva(total, noches, detalles);
     }
 
     public Folio consultarFolio(String codigo) {

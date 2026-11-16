@@ -3,7 +3,6 @@ package co.edu.uq.sga.controladores;
 import co.edu.uq.sga.servicios.ServicioPanelReservas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ResumenReserva;
-import co.edu.uq.sga.servicios.ServicioTarifas;
 import co.edu.uq.sga.servicios.ServicioPanelReservas.ApartamentoDisponible;
 import java.util.Optional;
 
@@ -51,7 +50,7 @@ public final class ControladorReservas {
         }
     }
 
-    public Optional<ServicioTarifas.Cotizacion> cotizar(String folio) {
+    public Optional<ServicioPanelReservas.CotizacionReserva> cotizar(String folio) {
         try {
             return Optional.of(servicio.cotizarReserva(folio));
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -83,7 +82,7 @@ public final class ControladorReservas {
         return true;
     }
 
-    public Optional<ServicioTarifas.Cotizacion> cotizarBorrador(
+    public Optional<ServicioPanelReservas.CotizacionReserva> cotizarBorrador(
             String[] apartamentos,
             DatosOcupante[] ocupantes,
             LocalDate entrada,
