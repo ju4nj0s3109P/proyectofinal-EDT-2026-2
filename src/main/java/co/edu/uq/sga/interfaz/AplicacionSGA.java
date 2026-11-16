@@ -11,6 +11,8 @@ import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
 import co.edu.uq.sga.persistencia.CargadorApartamentos;
 import co.edu.uq.sga.persistencia.CargadorPreparaciones;
 import co.edu.uq.sga.persistencia.CargadorHuespedes;
+import co.edu.uq.sga.persistencia.CargadorTemporadas;
+import co.edu.uq.sga.servicios.ServicioTarifas;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
 import co.edu.uq.sga.servicios.ServicioPanelPreparacion;
@@ -38,6 +40,7 @@ public final class AplicacionSGA extends Application {
     private ServicioPanelPreparacion servicioPreparacion;
     private CatalogoHuespedesArbol catalogoHuespedes;
     private ServicioPanelReservas servicioPanelReservas;
+    private ServicioTarifas servicioTarifas;
 
 
     @Override
@@ -46,6 +49,10 @@ public final class AplicacionSGA extends Application {
         Path archivoPasillos = Path.of("data", "pasillos.csv");
 
         try {
+            servicioTarifas = new CargadorTemporadas().cargar(
+                    Path.of("data", "temporadas.csv")
+            );
+
             CargadorMapaEdificio cargador = new CargadorMapaEdificio();
             var mapa = cargador.cargar(archivoUbicaciones, archivoPasillos);
 
