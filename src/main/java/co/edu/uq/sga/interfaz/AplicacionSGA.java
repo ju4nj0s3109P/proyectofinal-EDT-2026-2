@@ -15,6 +15,7 @@ import co.edu.uq.sga.persistencia.CargadorApartamentos;
 import co.edu.uq.sga.persistencia.CargadorPreparaciones;
 import co.edu.uq.sga.persistencia.CargadorHuespedes;
 import co.edu.uq.sga.persistencia.CargadorTemporadas;
+import co.edu.uq.sga.persistencia.CargadorReservas;
 import co.edu.uq.sga.servicios.ServicioTarifas;
 import co.edu.uq.sga.servicios.ServicioMapa;
 import co.edu.uq.sga.servicios.ServicioApartamentos;
@@ -29,6 +30,10 @@ import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
 import co.edu.uq.sga.servicios.ServicioReservasPortal;
 import co.edu.uq.sga.servicios.VigilanciaAutomaticaVencimientos;
 import java.time.Duration;
+import co.edu.uq.sga.adaptadores.ColaReservasPendientesPorVencimiento;
+import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
+import co.edu.uq.sga.servicios.ServicioReservasPortal;
+
 
 import java.time.LocalDate;
 
@@ -123,12 +128,20 @@ public final class AplicacionSGA extends Application {
             var catalogoReservas = new CatalogoReservasArbol();
             servicioReservas = new ServicioReservas(indiceReservas);
             var colaVencimientos = new ColaReservasPendientesPorVencimiento(
-                    ServicioVencimientoReservas.comparadorPorVencimiento());
+                    ServicioVencimientoReservas.comparadorPorVencimiento()
+            );
             var servicioVencimientos = new ServicioVencimientoReservas(
-                    servicioReservas, colaVencimientos);
-            servicioPortal = new ServicioReservasPortal(servicioReservas, servicioVencimientos);
+                    servicioReservas,
+                    colaVencimientos
+            );
+            servicioPortal = new ServicioReservasPortal(
+                    servicioReservas,
+                    servicioVencimientos
+            );
             vigilanciaVencimientos = new VigilanciaAutomaticaVencimientos(
-                    servicioVencimientos, Duration.ofMinutes(1));
+                    servicioVencimientos,
+                    Duration.ofMinutes(1)
+            );
             servicioEmpleados = new ServicioEmpleados(new CatalogoEmpleadosArbol());
             servicioTurnos = new ServicioTurnosRecepcion();
             var servicioDisponibilidad = new ServicioDisponibilidad(
@@ -146,6 +159,45 @@ public final class AplicacionSGA extends Application {
                     new PilaDeshacerFoliosArbol()
             );
 
+            var reservasIniciales = new CargadorReservas().cargar(
+                    Path.of("data", "reservas.csv"),
+                    catalogo,
+                    catalogoHuespedes
+            );
+
+            for (var cargada : reservasIniciales) {
+                try {
+                    catalogoReservas.registrarDirectaCargada(
+                            cargada.reserva(),
+                            cargada.llegadaEstimada(),
+                            indiceReservas
+                    );
+
+                    servicioFolios.abrir(cargada.reserva());
+                } catch (IllegalArgumentException | IllegalStateException e) {
+                    throw new IOException(
+                            "No se pudo incorporar la reserva "
+                                    + cargada.reserva().getFolio()
+                                    + ": " + e.getMessage(),
+                            e
+                    );
+                }
+            }
+
+            var colaVencimientos = new ColaReservasPendientesPorVencimiento(
+                    ServicioVencimientoReservas.comparadorPorVencimiento()
+            );
+
+            var servicioVencimientos = new ServicioVencimientoReservas(
+                    servicioReservas,
+                    colaVencimientos
+            );
+
+            var servicioPortal = new ServicioReservasPortal(
+                    servicioReservas,
+                    servicioVencimientos
+            );
+
             servicioPanelReservas = new ServicioPanelReservas(
                     catalogo,
                     catalogoHuespedes,
@@ -154,7 +206,8 @@ public final class AplicacionSGA extends Application {
                     servicioPreparacion,
                     servicioFolios,
                     servicioTarifas,
-                    servicioDisponibilidad
+                    servicioDisponibilidad,
+                    servicioPortal
             );
 
             var tareasIniciales = new CargadorPreparaciones().cargar(
@@ -193,8 +246,7 @@ public final class AplicacionSGA extends Application {
 
         vigilanciaVencimientos.iniciar();
         var vistaAdministracion = new PanelAdministracion(servicioEmpleados, servicioTurnos);
-        var vistaPortal = new PanelPortalHuespedes(catalogoHuespedes,
-                catalogoApartamentos,
+        var vistaPortal = new PanelPortalHuespedes(catalogoHuespedes, catalogoApartamentos,
                 servicioReservas.getServicioPerfilesHuesped());
         var vistaCalendario = new PanelCalendario(servicioPanelReservas);
         var vistaEstadisticas = new PanelEstadisticas(servicioPanelReservas);
@@ -221,10 +273,15 @@ public final class AplicacionSGA extends Application {
         escenario.centerOnScreen();
 
 
+
+
     }
+
     @Override
     public void stop() {
-        if (vigilanciaVencimientos != null) vigilanciaVencimientos.close();
+        if (vigilanciaVencimientos != null) {
+            vigilanciaVencimientos.close();
+        }
     }
 
     private void validarApartamentosDelMapa(
