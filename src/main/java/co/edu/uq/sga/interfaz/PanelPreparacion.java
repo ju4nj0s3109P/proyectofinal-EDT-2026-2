@@ -10,6 +10,7 @@ import javafx.scene.layout.*;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public final class PanelPreparacion extends VBox
         implements ControladorPreparacion.VistaPreparacion {
@@ -24,10 +25,12 @@ public final class PanelPreparacion extends VBox
 
     private final Button despachar = new Button("Despachar siguiente");
     private final Button completar = new Button("Completar preparación");
+    private final Button verRuta = new Button("Ver ruta de la tarea");
+    private String apartamentoActual;
 
     private final ControladorPreparacion controlador;
 
-    public PanelPreparacion(ServicioPanelPreparacion servicio) {
+    public PanelPreparacion(ServicioPanelPreparacion servicio, Consumer<String> alVerRuta) {
         super(18);
 
         controlador = new ControladorPreparacion(servicio, this);
@@ -86,12 +89,17 @@ public final class PanelPreparacion extends VBox
 
         despachar.setOnAction(evento -> controlador.despachar());
         completar.setOnAction(evento -> controlador.completar());
+        verRuta.setOnAction(evento -> {
+            if (apartamentoActual != null) {
+                alVerRuta.accept(apartamentoActual);
+            }
+        });
 
         Button actualizar = new Button("Actualizar");
         actualizar.setOnAction(evento -> actualizar());
 
         HBox acciones = new HBox(
-                12, despachar, completar, actualizar
+                12, despachar, completar, verRuta, actualizar
         );
 
         getChildren().addAll(
@@ -112,6 +120,11 @@ public final class PanelPreparacion extends VBox
             ResumenTarea[] pendientes,
             Optional<ResumenTarea> actual
     ) {
+        apartamentoActual = actual
+                .map(ResumenTarea::apartamento)
+                .orElse(null);
+
+        verRuta.setDisable(apartamentoActual == null);
         tabla.getItems().setAll(pendientes);
         resumen.setText(pendientes.length + " tareas en espera");
 

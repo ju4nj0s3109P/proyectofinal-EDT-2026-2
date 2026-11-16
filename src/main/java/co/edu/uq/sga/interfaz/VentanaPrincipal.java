@@ -82,7 +82,13 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                 this::seleccionarDestino
         );
 
-        vistaPreparacion = new PanelPreparacion(servicioPreparacion);
+        vistaPreparacion = new PanelPreparacion(
+                servicioPreparacion,
+                codigo -> {
+                    seleccionarDestino(codigo);
+                    mostrarVista(true);
+                }
+        );
         setLeft(crearBarraLateral());
         vistaTablero = new PanelTablero(servicioApartamentos);
 
