@@ -28,7 +28,6 @@ import co.edu.uq.sga.servicios.ServicioTurnosRecepcion;
 import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
 import co.edu.uq.sga.servicios.ServicioReservasPortal;
 import co.edu.uq.sga.servicios.VigilanciaAutomaticaVencimientos;
-import co.edu.uq.sga.servicios.ServicioReportes;
 import java.time.Duration;
 
 import java.time.LocalDate;
@@ -57,6 +56,7 @@ public final class AplicacionSGA extends Application {
     private VigilanciaAutomaticaVencimientos vigilanciaVencimientos;
     private ServicioEmpleados servicioEmpleados;
     private ServicioTurnosRecepcion servicioTurnos;
+    private CatalogoApartamentosArbol catalogoApartamentos;
 
 
     @Override
@@ -109,6 +109,7 @@ public final class AplicacionSGA extends Application {
             Path archivoApartamentos = Path.of("data", "apartamentos.csv");
 
             var catalogo = new CargadorApartamentos().cargar(archivoApartamentos);
+            catalogoApartamentos = catalogo;
 
             validarApartamentosDelMapa(catalogo, ubicaciones);
 
@@ -193,7 +194,7 @@ public final class AplicacionSGA extends Application {
         vigilanciaVencimientos.iniciar();
         var vistaAdministracion = new PanelAdministracion(servicioEmpleados, servicioTurnos);
         var vistaPortal = new PanelPortalHuespedes(catalogoHuespedes,
-                new CargadorApartamentos().cargar(Path.of("data", "apartamentos.csv")),
+                catalogoApartamentos,
                 servicioReservas.getServicioPerfilesHuesped());
         var vistaCalendario = new PanelCalendario(servicioPanelReservas);
         var vistaEstadisticas = new PanelEstadisticas(servicioPanelReservas);
