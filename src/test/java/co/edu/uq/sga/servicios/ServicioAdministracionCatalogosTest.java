@@ -25,6 +25,21 @@ class ServicioAdministracionCatalogosTest {
     }
 
     @Test
+    void noRetiraDeServicioUnApartamentoOcupadoNiEnPreparacion() {
+        ServicioApartamentos servicio = new ServicioApartamentos(new CatalogoApartamentosArbol());
+        Apartamento apartamento = new Apartamento("A2", "Suite", "A", 1, 2, 4,
+                new String[]{"balcon"}, BigDecimal.TEN, BigDecimal.TEN, BigDecimal.TEN);
+        servicio.registrar(apartamento);
+        apartamento.cambiarEstadoOperativo(EstadoApartamento.OCUPADO);
+        assertThrows(IllegalStateException.class,
+                () -> servicio.marcarFueraDeServicio("A2", "Mantenimiento"));
+        assertEquals(EstadoApartamento.OCUPADO, apartamento.getEstadoOperativo());
+        apartamento.cambiarEstadoOperativo(EstadoApartamento.EN_PREPARACION);
+        assertThrows(IllegalStateException.class,
+                () -> servicio.marcarFueraDeServicio("A2", "Mantenimiento"));
+    }
+
+    @Test
     void administraHuespedesMedianteCatalogoArbol() {
         ServicioHuespedes servicio = new ServicioHuespedes(new CatalogoHuespedesArbol());
         Huesped huesped = new Huesped("Ana", "123", LocalDate.of(1990, 1, 1),

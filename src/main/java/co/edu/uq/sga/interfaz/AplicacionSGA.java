@@ -8,6 +8,8 @@ import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
 import co.edu.uq.sga.adaptadores.CatalogoReservasArbol;
 import co.edu.uq.sga.adaptadores.IndiceReservasArbol;
 import co.edu.uq.sga.adaptadores.RepositorioFoliosArbol;
+import co.edu.uq.sga.adaptadores.ColaSolicitudesExternasEnCola;
+import co.edu.uq.sga.adaptadores.RegistroConflictosEnLista;
 import co.edu.uq.sga.adaptadores.PilaDeshacerFoliosArbol;
 import co.edu.uq.sga.adaptadores.ReservasDelIndice;
 import co.edu.uq.sga.persistencia.CargadorMapaEdificio;
@@ -32,6 +34,7 @@ import co.edu.uq.sga.servicios.ServicioEmpleados;
 import co.edu.uq.sga.servicios.ServicioTurnosRecepcion;
 import co.edu.uq.sga.servicios.ServicioVencimientoReservas;
 import co.edu.uq.sga.servicios.ServicioReservasPortal;
+import co.edu.uq.sga.servicios.ServicioSolicitudesExternas;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
@@ -126,6 +129,10 @@ public final class AplicacionSGA extends Application {
                     catalogoApartamentos, catalogoHuespedes, catalogoReservas,
                     servicioReservas, servicioPreparacion, servicioFolios,
                     servicioTarifas, servicioDisponibilidad, servicioPortal);
+            var registroConflictos = new RegistroConflictosEnLista();
+            var servicioSolicitudesExternas = new ServicioSolicitudesExternas(
+                    servicioReservas, new ColaSolicitudesExternasEnCola(), registroConflictos);
+            servicioPanelReservas.configurarSolicitudesExternas(servicioSolicitudesExternas, registroConflictos);
 
             var tareasIniciales = new CargadorPreparaciones().cargar(
                     Path.of("data", "preparaciones.csv"),
@@ -151,9 +158,10 @@ public final class AplicacionSGA extends Application {
             Platform.exit();
             return;
         }
-        var vistaAdministracion = new PanelAdministracion(servicioEmpleados, servicioTurnos);
+        var vistaAdministracion = new PanelAdministracion(servicioEmpleados, servicioTurnos,
+                servicioApartamentos, catalogoHuespedes, servicioTarifas);
         var vistaPortal = new PanelPortalHuespedes(catalogoHuespedes, catalogoApartamentos,
-                servicioReservas.getServicioPerfilesHuesped());
+                servicioReservas.getServicioPerfilesHuesped(), servicioPanelReservas);
         var vistaCalendario = new PanelCalendario(servicioPanelReservas);
         var vistaEstadisticas = new PanelEstadisticas(servicioPanelReservas);
         var vistaFinanzas = new PanelGestionFinanciera(servicioPanelReservas);

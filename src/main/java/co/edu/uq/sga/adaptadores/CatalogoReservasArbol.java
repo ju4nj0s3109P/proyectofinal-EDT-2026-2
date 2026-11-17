@@ -138,6 +138,21 @@ public final class CatalogoReservasArbol {
 
 
 
+    /** Registra una solicitud externa pendiente sin ocupar todavía el índice activo. */
+    public void registrarExternaPendiente(Reserva reserva, LocalDateTime llegadaEstimada) {
+        Objects.requireNonNull(reserva, "La reserva es obligatoria.");
+        if (reserva.getCanal() != CanalReserva.EXTERNA || reserva.getEstado() != EstadoReserva.PENDIENTE) {
+            throw new IllegalArgumentException("La solicitud externa debe estar pendiente y usar canal EXTERNA.");
+        }
+        if (llegadaEstimada == null || !llegadaEstimada.toLocalDate().equals(reserva.getEstancia().getFechaEntrada())) {
+            throw new IllegalArgumentException("La llegada estimada debe corresponder al día de entrada.");
+        }
+        if (registros.contieneClave(reserva.getFolio())) {
+            throw new IllegalArgumentException("Ya existe la reserva " + reserva.getFolio());
+        }
+        registros.poner(reserva.getFolio(), new RegistroReserva(reserva, llegadaEstimada));
+    }
+
     public Optional<RegistroReserva> buscarPorFolio(String folio) {
         if (folio == null || folio.isBlank()) {
             throw new IllegalArgumentException("El folio es obligatorio.");

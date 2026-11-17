@@ -22,7 +22,12 @@ public final class ServicioApartamentos {
     }
 
     public void marcarFueraDeServicio(String codigo, String motivo) {
-        obtener(codigo).marcarFueraDeServicio(motivo);
+        Apartamento apartamento = obtener(codigo);
+        if (apartamento.getEstadoOperativo() == EstadoApartamento.OCUPADO
+                || apartamento.getEstadoOperativo() == EstadoApartamento.EN_PREPARACION) {
+            throw new IllegalStateException("No se puede retirar de servicio un apartamento ocupado o en preparación.");
+        }
+        apartamento.marcarFueraDeServicio(motivo);
     }
 
     public void restablecerPreparado(String codigo) {
@@ -32,6 +37,8 @@ public final class ServicioApartamentos {
         }
         apartamento.cambiarEstadoOperativo(EstadoApartamento.PREPARADO);
     }
+
+    public Apartamento[] consultarModelos() { return catalogo.listarPorCodigo(); }
 
     public ResumenApartamento[] consultarTodos() {
         Apartamento[] apartamentos = catalogo.listarPorCodigo();

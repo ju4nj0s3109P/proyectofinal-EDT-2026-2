@@ -21,7 +21,9 @@ import java.text.DecimalFormat;
 public class VentanaPrincipal extends BorderPane implements ControladorMapa.VistaMapa {
 
     private final ControladorMapa controlador;
+    private final ServicioMapa servicioMapa;
     private final ServicioApartamentos servicioApartamentos;
+    private final ServicioPanelReservas servicioPanelReservas;
 
     private final Label titulo =
             etiqueta("Mapa del edificio", "titulo");
@@ -86,7 +88,9 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
                             PanelGestionFinanciera finanzas
     ) {
         this.controlador = new ControladorMapa(servicio, this);
+        this.servicioMapa = servicio;
         this.servicioApartamentos = servicioApartamentos;
+        this.servicioPanelReservas = servicioPanelReservas;
 
         getStyleClass().add("ventana");
 
@@ -110,10 +114,12 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
 
         vistaPreparacion = new PanelPreparacion(
                 servicioPreparacion,
+                controlador.consultarRecepcion(),
                 codigo -> {
                     seleccionarDestino(codigo);
                     mostrarVista(true);
-                }
+                },
+                this::mostrarRecorridoPreparacion
         );
         vistaReservas = new PanelReservas(servicioPanelReservas);
         vistaAdministracion = administracion;
@@ -238,10 +244,16 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         Button gestionarPasillos = new Button("Gestionar pasillos");
         gestionarPasillos.getStyleClass().add("accion-principal");
         gestionarPasillos.setOnAction(evento -> abrirGestionPasillos());
+        Button agruparBfs = new Button("Agrupar por bloque · BFS");
+        Button agruparDfs = new Button("Agrupar por bloque · DFS");
+        agruparBfs.setOnAction(evento -> mostrarAgrupacionPorBloque(false));
+        agruparDfs.setOnAction(evento -> mostrarAgrupacionPorBloque(true));
+        HBox accionesMapa = new HBox(10, gestionarPasillos, agruparBfs, agruparDfs);
+        accionesMapa.setAlignment(Pos.CENTER_LEFT);
 
         VBox zonaMapa = new VBox(
                 12,
-                gestionarPasillos,
+                accionesMapa,
                 scroll,
                 etiqueta(
                         "Esquema de conexiones · Distancias en metros",
@@ -254,6 +266,28 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
         HBox.setHgrow(zonaMapa, Priority.ALWAYS);
 
         return new HBox(20, zonaMapa, crearDetalle());
+    }
+
+    private void mostrarAgrupacionPorBloque(boolean profundidad) {
+        var grupos = servicioMapa.agruparApartamentosPorBloque(
+                servicioPanelReservas.consultarApartamentosDominio(), profundidad);
+        ListView<String> lista = new ListView<>();
+        for (var grupo : grupos) {
+            lista.getItems().add("Bloque " + grupo.bloque() + " · "
+                    + String.join(", ", grupo.codigosApartamentos()));
+        }
+        lista.setPrefHeight(320);
+        lista.setPlaceholder(etiqueta("No hay apartamentos para agrupar.", "texto-suave"));
+        Dialog<Void> dialogo = new Dialog<>();
+        dialogo.setTitle("Agrupación de apartamentos por bloque");
+        dialogo.setHeaderText(profundidad
+                ? "Recorrido en profundidad (DFS) desde recepción"
+                : "Recorrido en anchura (BFS) desde recepción");
+        dialogo.initOwner(getScene().getWindow());
+        dialogo.getDialogPane().setContent(lista);
+        dialogo.getDialogPane().setPrefWidth(620);
+        dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialogo.showAndWait();
     }
 
     private VBox crearDetalle() {
@@ -430,6 +464,20 @@ public class VentanaPrincipal extends BorderPane implements ControladorMapa.Vist
             recorrido.getChildren().add(
                     etiqueta(pasos[i], "paso-ruta")
             );
+        }
+    }
+
+    private void mostrarRecorridoPreparacion(String[] ruta) {
+        if (ruta == null || ruta.length == 0) return;
+        mostrarVista(true);
+        String destino = ruta[ruta.length - 1];
+        mapa.mostrarRuta(destino, ruta);
+        recorrido.getChildren().clear();
+        distancia.setText(ruta.length + " ubicaciones");
+        resultado.setText("Recorrido de preparación · paradas en orden de prioridad");
+        for (int i = 0; i < ruta.length; i++) {
+            if (i > 0) recorrido.getChildren().add(etiqueta("↓", "flecha"));
+            recorrido.getChildren().add(etiqueta((i + 1) + ". " + ruta[i], "paso-ruta"));
         }
     }
 

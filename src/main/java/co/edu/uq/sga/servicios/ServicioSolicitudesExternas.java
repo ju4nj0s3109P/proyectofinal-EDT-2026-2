@@ -52,6 +52,17 @@ public class ServicioSolicitudesExternas {
         cola.encolar(reserva);
     }
 
+    public int pendientes() { return contarPendientes(); }
+
+    private int contarPendientes() {
+        if (cola instanceof Iterable<?> iterable) {
+            int cantidad = 0;
+            for (Object ignorado : iterable) cantidad++;
+            return cantidad;
+        }
+        return cola.estaVacia() ? 0 : 1;
+    }
+
     /** Procesa una solicitud; devuelve vacío si la cola no tiene solicitudes. */
     public Optional<Resultado> procesarSiguiente(LocalDateTime fechaHoraProceso) {
         if (fechaHoraProceso == null) {

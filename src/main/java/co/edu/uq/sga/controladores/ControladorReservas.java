@@ -50,6 +50,23 @@ public final class ControladorReservas {
         }
     }
 
+    public void cancelarReserva(String folio) {
+        try {
+            servicio.cancelarReserva(folio);
+            actualizar();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+        }
+    }
+
+    public void marcarNoShow(String folio) {
+        try {
+            servicio.marcarNoShow(folio);
+            actualizar();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+        }
+    }
     public Optional<ServicioPanelReservas.CotizacionReserva> cotizar(String folio) {
         try {
             return Optional.of(servicio.cotizarReserva(folio));
@@ -78,6 +95,20 @@ public final class ControladorReservas {
             return false;
         }
 
+        actualizar();
+        return true;
+    }
+
+    public boolean registrarExterna(
+            String folio, String documento, String[] apartamentos, DatosOcupante[] ocupantes,
+            LocalDate entrada, LocalDate salida, LocalTime hora) {
+        try {
+            servicio.registrar(folio, documento, apartamentos, ocupantes, entrada, salida, hora,
+                    co.edu.uq.sga.dominio.enums.CanalReserva.EXTERNA);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            vista.mostrarError(e.getMessage());
+            return false;
+        }
         actualizar();
         return true;
     }

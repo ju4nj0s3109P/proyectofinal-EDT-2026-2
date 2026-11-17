@@ -3,6 +3,13 @@ package co.edu.uq.sga.servicios;
 import co.edu.uq.sga.adaptadores.CatalogoApartamentosArbol;
 import co.edu.uq.sga.adaptadores.CatalogoHuespedesArbol;
 import co.edu.uq.sga.adaptadores.CatalogoReservasArbol;
+import co.edu.uq.sga.adaptadores.RegistroConflictosEnLista;
+import co.edu.uq.sga.dominio.modelo.ConflictoReserva;
+import co.edu.uq.sga.dominio.modelo.TareaPreparacion;
+import co.edu.uq.sga.dominio.modelo.Temporada;
+import co.edu.uq.sga.dominio.modelo.Apartamento;
+import co.edu.uq.sga.dominio.modelo.Huesped;
+import java.util.Optional;
 import co.edu.uq.sga.dominio.enums.CanalReserva;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
 import co.edu.uq.sga.dominio.modelo.AsignacionApartamento;
@@ -95,6 +102,8 @@ public final class ServicioPanelReservas {
     private final ServicioTarifas tarifas;
     private final ServicioDisponibilidad disponibilidad;
     private final ServicioReservasPortal portal;
+    private ServicioSolicitudesExternas solicitudesExternas;
+    private RegistroConflictosEnLista registroConflictos;
 
     public ServicioPanelReservas(
             CatalogoApartamentosArbol apartamentos,
@@ -220,7 +229,11 @@ public final class ServicioPanelReservas {
                 asignaciones
         );
 
-        if (canal == CanalReserva.PORTAL) {
+        if (canal == CanalReserva.EXTERNA) {
+            if (solicitudesExternas == null) throw new IllegalStateException("El canal externo no está configurado.");
+            catalogo.registrarExternaPendiente(reserva, entrada.atTime(horaLlegada));
+            solicitudesExternas.encolar(reserva);
+        } else if (canal == CanalReserva.PORTAL) {
             catalogo.registrarPortal(
                     reserva,
                     entrada.atTime(horaLlegada),
@@ -236,6 +249,44 @@ public final class ServicioPanelReservas {
 
         folios.abrir(reserva);
     }
+
+    public void configurarSolicitudesExternas(ServicioSolicitudesExternas servicio, RegistroConflictosEnLista conflictos) {
+        this.solicitudesExternas = Objects.requireNonNull(servicio);
+        this.registroConflictos = Objects.requireNonNull(conflictos);
+    }
+
+    public Optional<ServicioSolicitudesExternas.Resultado> procesarSiguienteExterna() {
+        if (solicitudesExternas == null) throw new IllegalStateException("El canal externo no está configurado.");
+        return solicitudesExternas.procesarSiguiente(LocalDateTime.now());
+    }
+
+    public int consultarPendientesExternas() {
+        return solicitudesExternas == null ? 0 : solicitudesExternas.pendientes();
+    }
+
+    public ConflictoReserva[] consultarConflictosExternos() {
+        if (registroConflictos == null) return new ConflictoReserva[0];
+        return registroConflictos.conflictos().aArreglo(ConflictoReserva[]::new);
+    }
+
+    public Reserva[] consultarReservasDominio() {
+        var registros = catalogo.listar();
+        Reserva[] resultado = new Reserva[registros.length];
+        for (int i = 0; i < registros.length; i++) resultado[i] = registros[i].reserva();
+        return resultado;
+    }
+
+    public Folio[] consultarFolios() {
+        ResumenReserva[] resumenes = consultarTodas();
+        Folio[] resultado = new Folio[resumenes.length];
+        for (int i = 0; i < resumenes.length; i++) resultado[i] = folios.obtener(resumenes[i].folio());
+        return resultado;
+    }
+
+    public Apartamento[] consultarApartamentosDominio() { return apartamentos.listarPorCodigo(); }
+    public Huesped[] consultarHuespedesDominio() { return huespedes.listarPorDocumento(); }
+    public Temporada[] consultarTemporadas() { return tarifas.getTemporadas().aArreglo(Temporada[]::new); }
+    public TareaPreparacion[] consultarPreparacionesCompletadas() { return preparacion.consultarCompletadas(); }
 
     public ApartamentoDisponible[] buscarDisponibles(
             LocalDate entrada,
@@ -439,6 +490,25 @@ public final class ServicioPanelReservas {
         reservas.registrarCheckIn(buscarReserva(folio));
     }
 
+    /** Cancela una reserva y registra en el folio los reversos y devoluciones correspondientes. */
+    public BigDecimal cancelarReserva(String folio) {
+        Reserva reserva = buscarReserva(folio);
+        if (reserva.getEstado() != EstadoReserva.PENDIENTE
+                && reserva.getEstado() != EstadoReserva.CONFIRMADA) {
+            throw new IllegalStateException(
+                    "Solo se puede cancelar una reserva antes del check-in."
+            );
+        }
+        Folio cuenta = folios.obtener(folio);
+        BigDecimal devuelto = folios.cerrarPorCancelacion(folio, LocalDateTime.now());
+        reservas.cancelar(reserva, cuenta);
+        return devuelto;
+    }
+
+    /** Libera las noches de una reserva confirmada cuyo titular no se presentó. */
+    public void marcarNoShow(String folio) {
+        reservas.marcarNoShow(buscarReserva(folio));
+    }
     public void registrarCheckOut(String folio) {
         Reserva reserva = buscarReserva(folio);
 

@@ -26,14 +26,18 @@ public final class PanelPreparacion extends VBox
     private final Button despachar = new Button("Despachar siguiente");
     private final Button completar = new Button("Completar preparación");
     private final Button verRuta = new Button("Ver ruta de la tarea");
+    private final Button verRecorrido = new Button("Ver recorrido de todas las pendientes");
     private String apartamentoActual;
 
     private final ControladorPreparacion controlador;
+    private final String origenRuta;
 
-    public PanelPreparacion(ServicioPanelPreparacion servicio, Consumer<String> alVerRuta) {
+    public PanelPreparacion(ServicioPanelPreparacion servicio, String origen,
+            Consumer<String> alVerRuta, Consumer<String[]> alVerRecorrido) {
         super(18);
 
         controlador = new ControladorPreparacion(servicio, this);
+        this.origenRuta = origen;
 
         Label fecha = new Label(
                 "Prioridad calculada para "
@@ -91,6 +95,10 @@ public final class PanelPreparacion extends VBox
 
         despachar.setOnAction(evento -> controlador.despachar());
         completar.setOnAction(evento -> controlador.completar());
+        verRecorrido.setOnAction(evento -> {
+            try { alVerRecorrido.accept(servicio.calcularRutaPendientes(origenRuta)); }
+            catch (RuntimeException ex) { mostrarError(ex.getMessage()); }
+        });
         verRuta.setOnAction(evento -> {
             if (apartamentoActual != null) {
                 alVerRuta.accept(apartamentoActual);
@@ -104,7 +112,7 @@ public final class PanelPreparacion extends VBox
         actualizar.getStyleClass().add("accion-secundaria");
 
         FlowPane acciones = new FlowPane(
-                12, 10, despachar, completar, verRuta, actualizar
+                12, 10, despachar, completar, verRuta, verRecorrido, actualizar
         );
 
         getChildren().addAll(
@@ -130,8 +138,9 @@ public final class PanelPreparacion extends VBox
                 .orElse(null);
 
         verRuta.setDisable(apartamentoActual == null);
+        verRecorrido.setDisable(pendientes.length == 0);
         tabla.getItems().setAll(pendientes);
-        resumen.setText(pendientes.length + " tareas en espera");
+        resumen.setText(pendientes.length + (pendientes.length == 1 ? " tarea en espera" : " tareas en espera"));
 
         if (actual.isPresent()) {
             ResumenTarea tarea = actual.get();

@@ -32,10 +32,16 @@ public final class PanelReservas extends VBox
     private final Button checkOut = new Button("Registrar salida");
     private final Button confirmarPortal =
             new Button("Confirmar portal");
+    private final Button cancelar = new Button("Cancelar reserva");
+    private final Button noShow = new Button("Registrar no-show");
+    private final Button procesarExterna = new Button("Procesar siguiente solicitud externa");
+    private final Button verConflictos = new Button("Ver conflictos externos");
+    private final ServicioPanelReservas servicio;
 
     public PanelReservas(ServicioPanelReservas servicio) {
         super(18);
 
+        this.servicio = servicio;
         controlador = new ControladorReservas(servicio, this);
 
         Button nueva = new Button("Nueva reserva");
@@ -69,6 +75,8 @@ public final class PanelReservas extends VBox
         checkOut.setDisable(true);
         confirmarPortal.getStyleClass().add("accion-principal");
         confirmarPortal.setDisable(true);
+        cancelar.setDisable(true);
+        noShow.setDisable(true);
 
         tabla.getSelectionModel().selectedItemProperty().addListener(
                 (observable, anterior, seleccionada) -> {
@@ -85,6 +93,15 @@ public final class PanelReservas extends VBox
                             seleccionada == null
                                     || seleccionada.canal() != CanalReserva.PORTAL
                                     || seleccionada.estado() != EstadoReserva.PENDIENTE
+                    );
+                    cancelar.setDisable(
+                            seleccionada == null
+                                    || (seleccionada.estado() != EstadoReserva.PENDIENTE
+                                    && seleccionada.estado() != EstadoReserva.CONFIRMADA)
+                    );
+                    noShow.setDisable(
+                            seleccionada == null
+                                    || seleccionada.estado() != EstadoReserva.CONFIRMADA
                     );
                 }
         );
@@ -210,8 +227,39 @@ public final class PanelReservas extends VBox
             });
         });
 
+        cancelar.getStyleClass().add("accion-secundaria");
+        noShow.getStyleClass().add("accion-secundaria");
+        cancelar.setOnAction(evento -> {
+            ResumenReserva seleccionada = tabla.getSelectionModel().getSelectedItem();
+            if (seleccionada == null) return;
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Se reversarán los cargos vigentes y se devolverán los pagos registrados. ¿Continuar?",
+                    ButtonType.OK, ButtonType.CANCEL);
+            confirmacion.initOwner(getScene().getWindow());
+            confirmacion.setTitle("Cancelar reserva");
+            confirmacion.setHeaderText("Reserva " + seleccionada.folio());
+            confirmacion.showAndWait().filter(r -> r == ButtonType.OK)
+                    .ifPresent(r -> controlador.cancelarReserva(seleccionada.folio()));
+        });
+        noShow.setOnAction(evento -> {
+            ResumenReserva seleccionada = tabla.getSelectionModel().getSelectedItem();
+            if (seleccionada == null) return;
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION,
+                    "La reserva se marcará como NO_SHOW y sus noches quedarán liberadas.",
+                    ButtonType.OK, ButtonType.CANCEL);
+            confirmacion.initOwner(getScene().getWindow());
+            confirmacion.setTitle("Registrar no-show");
+            confirmacion.setHeaderText("Reserva " + seleccionada.folio());
+            confirmacion.showAndWait().filter(r -> r == ButtonType.OK)
+                    .ifPresent(r -> controlador.marcarNoShow(seleccionada.folio()));
+        });
+        procesarExterna.getStyleClass().add("accion-principal");
+        verConflictos.getStyleClass().add("accion-secundaria");
+        procesarExterna.setOnAction(e -> procesarSolicitudExterna());
+        verConflictos.setOnAction(e -> mostrarConflictosExternos());
         FlowPane acciones = new FlowPane(
-                12, 10, nueva, confirmarPortal, checkIn, checkOut, verFolio, cotizar
+                12, 10, nueva, confirmarPortal, checkIn, checkOut, cancelar, noShow, verFolio, cotizar,
+                procesarExterna, verConflictos
         );
         getChildren().addAll(acciones, tabla);
         VBox.setVgrow(tabla, Priority.ALWAYS);
@@ -221,6 +269,59 @@ public final class PanelReservas extends VBox
 
     public void actualizar() {
         controlador.actualizar();
+        procesarExterna.setText("Procesar siguiente solicitud externa ("
+                + servicio.consultarPendientesExternas() + ")");
+    }
+
+    private void procesarSolicitudExterna() {
+        try {
+            var resultado = servicio.procesarSiguienteExterna();
+            if (resultado.isEmpty()) {
+                mostrarAviso("Cola externa", "No hay solicitudes externas pendientes.");
+            } else if (resultado.get().aceptada()) {
+                mostrarAviso("Solicitud aceptada", "La solicitud " + resultado.get().reserva().getFolio()
+                        + " fue aceptada y confirmada.");
+            } else {
+                mostrarAviso("Solicitud rechazada", "La solicitud " + resultado.get().reserva().getFolio()
+                        + " fue rechazada: " + resultado.get().conflicto().getMotivo());
+            }
+            actualizar();
+        } catch (RuntimeException ex) { mostrarAviso("Canal externo", ex.getMessage()); }
+    }
+
+    private void mostrarConflictosExternos() {
+        var conflictos = servicio.consultarConflictosExternos();
+        TableView<co.edu.uq.sga.dominio.modelo.ConflictoReserva> tablaConflictos = new TableView<>();
+        tablaConflictos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tablaConflictos.getColumns().add(columnaConflicto("Folio", c -> c.getFolioReserva()));
+        tablaConflictos.getColumns().add(columnaConflicto("Apartamentos", c -> String.join(", ", c.getCodigosApartamentos())));
+        tablaConflictos.getColumns().add(columnaConflicto("Motivo", c -> c.getMotivo()));
+        tablaConflictos.getColumns().add(columnaConflicto("Fecha", c -> c.getFechaHora().toString()));
+        tablaConflictos.getItems().setAll(conflictos);
+        tablaConflictos.setPlaceholder(new Label("No se han registrado conflictos externos."));
+        tablaConflictos.setPrefHeight(300);
+        Dialog<Void> dialogo = new Dialog<>();
+        dialogo.setTitle("Conflictos de solicitudes externas");
+        dialogo.getDialogPane().setContent(tablaConflictos);
+        dialogo.getDialogPane().setPrefWidth(760);
+        dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialogo.showAndWait();
+    }
+
+    private TableColumn<co.edu.uq.sga.dominio.modelo.ConflictoReserva, String> columnaConflicto(
+            String titulo, Function<co.edu.uq.sga.dominio.modelo.ConflictoReserva, String> valor) {
+        TableColumn<co.edu.uq.sga.dominio.modelo.ConflictoReserva, String> columna = new TableColumn<>(titulo);
+        columna.setCellValueFactory(c -> new ReadOnlyStringWrapper(valor.apply(c.getValue())));
+        return columna;
+    }
+
+    private void mostrarAviso(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.initOwner(getScene().getWindow());
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 
     private void agregarColumna(
@@ -386,7 +487,7 @@ public final class PanelReservas extends VBox
         hora.setPromptText("Hora estimada, ejemplo: 15:30");
 
         ComboBox<String> canal = new ComboBox<>();
-        canal.getItems().addAll("Directa", "Portal");
+        canal.getItems().addAll("Directa", "Portal", "Externa");
         canal.setValue("Directa");
         canal.setMaxWidth(Double.MAX_VALUE);
 
@@ -396,8 +497,9 @@ public final class PanelReservas extends VBox
 
         Runnable actualizarAviso = () -> avisoCanal.setText(
                 "Portal".equals(canal.getValue())
-                        ? "Queda pendiente. Requiere un anticipo del 30 % "
-                        + "antes de cumplir 24 horas."
+                        ? "Queda pendiente. Requiere un anticipo del 30 % antes de cumplir 24 horas."
+                        : "Externa".equals(canal.getValue())
+                        ? "Queda en cola FIFO. El administrador debe procesarla; se acepta si hay disponibilidad."
                         : "Se registra directamente como confirmada."
         );
 
@@ -866,7 +968,11 @@ public final class PanelReservas extends VBox
 
                 boolean registrada;
 
-                if ("Portal".equals(canal.getValue())) {
+                if ("Externa".equals(canal.getValue())) {
+                    registrada = controlador.registrarExterna(
+                            folio.getText().trim(), documento.getText().trim(), codigos,
+                            personas, entrada.getValue(), salida.getValue(), horaLlegada);
+                } else if ("Portal".equals(canal.getValue())) {
                     registrada = controlador.registrarPortal(
                             folio.getText().trim(),
                             documento.getText().trim(),
