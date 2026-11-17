@@ -184,6 +184,74 @@ class ServicioReservasTest {
                 () -> servicio.cancelar(reserva, new Folio("R-6")));
     }
 
+    @Test
+    void permiteCheckInParcialYActivaLaReservaAlIngresarElUltimoApartamento() {
+        IndiceFalso indice = new IndiceFalso();
+        ServicioReservas servicio = new ServicioReservas(indice);
+        Apartamento primero = apartamento();
+        Apartamento segundo = new Apartamento("A-2", "Suite", "A", 1, 1, 2,
+                new String[0], BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        Reserva reserva = reservaConApartamentos("R-9", primero, segundo);
+        servicio.registrarDirecta(reserva);
+        segundo.cambiarEstadoOperativo(EstadoApartamento.PENDIENTE_PREPARACION);
+
+        servicio.registrarCheckIn(reserva);
+
+        assertEquals(EstadoApartamento.OCUPADO, primero.getEstadoOperativo());
+        assertEquals(EstadoApartamento.PENDIENTE_PREPARACION, segundo.getEstadoOperativo());
+        assertEquals(EstadoReserva.CONFIRMADA, reserva.getEstado());
+        assertTrue(indice.contiene(reserva));
+
+        segundo.cambiarEstadoOperativo(EstadoApartamento.PREPARADO);
+        servicio.registrarCheckIn(reserva);
+
+        assertEquals(EstadoApartamento.OCUPADO, segundo.getEstadoOperativo());
+        assertEquals(EstadoReserva.EN_CURSO, reserva.getEstado());
+        assertTrue(indice.contiene(reserva));
+    }
+
+    @Test
+    void checkInParcialNoModificaNingunApartamentoSiOtroNoEstaListo() {
+        ServicioReservas servicio = new ServicioReservas(new IndiceFalso());
+        Apartamento primero = apartamento();
+        Apartamento segundo = new Apartamento("A-2", "Suite", "A", 1, 1, 2,
+                new String[0], BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        Reserva reserva = reservaConApartamentos("R-10", primero, segundo);
+        servicio.registrarDirecta(reserva);
+        segundo.marcarFueraDeServicio("mantenimiento");
+
+        assertThrows(IllegalStateException.class, () -> servicio.registrarCheckIn(reserva));
+        assertEquals(EstadoApartamento.PREPARADO, primero.getEstadoOperativo());
+        assertEquals(EstadoReserva.CONFIRMADA, reserva.getEstado());
+    }
+
+    @Test
+    void noPermiteRepetirCheckInCuandoTodosLosApartamentosYaEstanOcupados() {
+        ServicioReservas servicio = new ServicioReservas(new IndiceFalso());
+        Apartamento primero = apartamento();
+        Apartamento segundo = new Apartamento("A-2", "Suite", "A", 1, 1, 2,
+                new String[0], BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        Reserva reserva = reservaConApartamentos("R-11", primero, segundo);
+        servicio.registrarDirecta(reserva);
+        servicio.registrarCheckIn(reserva);
+        assertEquals(EstadoReserva.EN_CURSO, reserva.getEstado());
+        assertThrows(IllegalStateException.class, () -> servicio.registrarCheckIn(reserva));
+    }
+
+    private Reserva reservaConApartamentos(String folio, Apartamento... apartamentos) {
+        Huesped huesped = new Huesped("Huesped", "123", LocalDate.of(1990, 1, 1),
+                "3001234567", "huesped@example.com", null);
+        Ocupante[] ocupantes = {new Ocupante("Huesped", LocalDate.of(1990, 1, 1))};
+        AsignacionApartamento[] asignaciones = new AsignacionApartamento[apartamentos.length];
+        for (int i = 0; i < apartamentos.length; i++) {
+            asignaciones[i] = new AsignacionApartamento(apartamentos[i]);
+        }
+        return new Reserva(folio, huesped, ocupantes,
+                new Estancia(LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 12)),
+                CanalReserva.DIRECTA, asignaciones,
+                LocalDateTime.of(2026, 10, 25, 10, 0));
+    }
+
     private Reserva reserva(String folio, CanalReserva canal, Apartamento apartamento) {
         return reserva(folio, canal, apartamento, LocalDateTime.of(2026, 10, 25, 10, 0));
     }

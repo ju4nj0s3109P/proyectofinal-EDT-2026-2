@@ -11,6 +11,12 @@ import co.edu.uq.sga.servicios.ServicioFolios;
 import co.edu.uq.sga.dominio.enums.EstadoReserva;
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import co.edu.uq.sga.servicios.ServicioPanelReservas.DatosOcupante;
+import co.edu.uq.sga.servicios.ServicioPanelReservas.ApartamentoDisponible;
+import javafx.event.ActionEvent;
+import javafx.scene.layout.GridPane;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -43,12 +49,15 @@ public final class PanelPortalHuespedes extends BorderPane {
             seleccionarApartamento.getItems().add(a.getCodigo() + " · " + a.getNombre());
         }
         Button consultar = new Button("Consultar perfil");
+        Button nuevaReserva = new Button("Buscar y reservar");
+        nuevaReserva.getStyleClass().add("accion-principal");
+        nuevaReserva.setOnAction(e -> abrirSolicitudPortal());
         Button agregar = new Button("Agregar favorito");
         Button quitar = new Button("Quitar favorito");
         consultar.setOnAction(e -> consultarPerfil());
         agregar.setOnAction(e -> agregarFavorito());
         quitar.setOnAction(e -> quitarFavorito());
-        FlowPane acciones = new FlowPane(10, 10, documento, consultar);
+        FlowPane acciones = new FlowPane(10, 10, documento, consultar, nuevaReserva);
         VBox panelFavoritos = new VBox(8, new Label("Apartamentos favoritos"),
                 favoritos, new FlowPane(8, 8, seleccionarApartamento, agregar, quitar));
         VBox panelHistorial = new VBox(8, new Label("Estancias finalizadas"), historial);
@@ -189,6 +198,234 @@ public final class PanelPortalHuespedes extends BorderPane {
         }
     }
 
+    private void abrirSolicitudPortal() {
+        if (!validarPerfil()) return;
+        Dialog<Void> dialogo = new Dialog<>();
+        dialogo.initOwner(getScene().getWindow());
+        dialogo.setTitle("Nueva reserva por Portal");
+        dialogo.setHeaderText("Titular: " + huespedActual.getNombre());
+        TextField folio = new TextField("POR-" + System.currentTimeMillis());
+        DatePicker entrada = new DatePicker(LocalDate.now().plusDays(1));
+        DatePicker salida = new DatePicker(LocalDate.now().plusDays(2));
+        DatePicker nacimiento = new DatePicker();
+        TextField nombre = new TextField();
+        TextField hora = new TextField("15:00");
+        ComboBox<String> orden = new ComboBox<>();
+        orden.getItems().addAll("Tarifa base", "Capacidad", "Dormitorios");
+        orden.setValue("Tarifa base");
+        ListView<DatosOcupante> ocupantes = new ListView<>();
+        ocupantes.setPrefHeight(110);
+        ocupantes.setCellFactory(lista -> new ListCell<>() {
+            @Override protected void updateItem(DatosOcupante dato, boolean vacio) {
+                super.updateItem(dato, vacio);
+                setText(vacio || dato == null ? null : dato.nombre() + " · " + dato.fechaNacimiento());
+            }
+        });
+        ComboBox<ApartamentoDisponible> disponibles = new ComboBox<>();
+        ListView<ApartamentoDisponible> grupoPropuesto = new ListView<>();
+        grupoPropuesto.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        grupoPropuesto.setPrefHeight(95);
+        grupoPropuesto.setCellFactory(lista -> new ListCell<>() {
+            @Override protected void updateItem(ApartamentoDisponible a, boolean vacio) {
+                super.updateItem(a, vacio);
+                setText(vacio || a == null ? null : a.codigo() + " - " + a.nombre()
+                        + " - capacidad " + a.capacidad() + " - tarifa " + a.tarifaBase());
+            }
+        });
+        disponibles.setCellFactory(lista -> new ListCell<>() {
+            @Override protected void updateItem(ApartamentoDisponible a, boolean vacio) {
+                super.updateItem(a, vacio);
+                setText(vacio || a == null ? null : a.codigo() + " · " + a.nombre()
+                        + " · capacidad " + a.capacidad() + " · " + a.tarifaBase());
+            }
+        });
+        disponibles.setButtonCell(new ListCell<>() {
+            @Override protected void updateItem(ApartamentoDisponible a, boolean vacio) {
+                super.updateItem(a, vacio);
+                setText(vacio || a == null ? null : a.codigo() + " · " + a.nombre());
+            }
+        });
+        disponibles.setMaxWidth(Double.MAX_VALUE);
+        Label estado = new Label("Agrega ocupantes y busca disponibilidad.");
+        entrada.setEditable(false); salida.setEditable(false); nacimiento.setEditable(false);
+        entrada.valueProperty().addListener((o, a, n) -> { grupoPropuesto.getItems().clear(); disponibles.getItems().clear(); });
+        salida.valueProperty().addListener((o, a, n) -> { grupoPropuesto.getItems().clear(); disponibles.getItems().clear(); });
+        nombre.setPromptText("Nombre del ocupante");
+        nacimiento.setPromptText("Fecha de nacimiento");
+        Button agregar = new Button("Agregar ocupante");
+        agregar.setOnAction(e -> {
+            if (nombre.getText().isBlank() || nacimiento.getValue() == null) {
+                estado.setText("Completa nombre y fecha de nacimiento."); return;
+            }
+            ocupantes.getItems().add(new DatosOcupante(nombre.getText().trim(), nacimiento.getValue()));
+            grupoPropuesto.getItems().clear(); disponibles.getItems().clear();
+            nombre.clear(); nacimiento.setValue(null);
+            estado.setText("Ocupantes: " + ocupantes.getItems().size());
+        });
+        Button quitarOcupante = new Button("Quitar ocupante");
+        quitarOcupante.setOnAction(e -> {
+            int indice = ocupantes.getSelectionModel().getSelectedIndex();
+            if (indice < 0) { estado.setText("Selecciona un ocupante para quitarlo."); return; }
+            ocupantes.getItems().remove(indice); grupoPropuesto.getItems().clear(); disponibles.getItems().clear();
+            estado.setText("Ocupantes: " + ocupantes.getItems().size());
+        });
+        Button buscar = new Button("Buscar disponibles");
+        buscar.setOnAction(e -> buscarDisponiblesPortal(entrada, salida, orden, ocupantes, disponibles, grupoPropuesto, estado));
+        Button proponer = new Button("Proponer varios apartamentos");
+        proponer.setOnAction(e -> proponerGrupoPortal(entrada, salida, ocupantes, disponibles, grupoPropuesto, estado));
+        Button cotizar = new Button("Cotizar estancia");
+        cotizar.setOnAction(e -> cotizarPortal(entrada, salida, ocupantes, disponibles, grupoPropuesto, estado, dialogo));
+        GridPane campos = new GridPane();
+        campos.setHgap(8); campos.setVgap(8);
+        campos.addRow(0, new Label("Folio"), folio);
+        campos.addRow(1, new Label("Entrada"), entrada);
+        campos.addRow(2, new Label("Salida"), salida);
+        campos.addRow(3, new Label("Hora llegada"), hora);
+        VBox contenido = new VBox(9, campos, new Label("Ocupantes"),
+                new FlowPane(8, 8, nombre, nacimiento, agregar), ocupantes, quitarOcupante,
+                new FlowPane(8, 8, new Label("Orden"), orden, buscar), disponibles,
+                proponer, new Label("Apartamentos propuestos para el grupo"), grupoPropuesto,
+                cotizar, estado);
+        dialogo.getDialogPane().setContent(contenido);
+        dialogo.getDialogPane().setPrefWidth(620);
+        ButtonType enviar = new ButtonType("Enviar solicitud", ButtonBar.ButtonData.OK_DONE);
+        dialogo.getDialogPane().getButtonTypes().addAll(enviar, ButtonType.CANCEL);
+        Button registrar = (Button) dialogo.getDialogPane().lookupButton(enviar);
+        registrar.getStyleClass().add("accion-principal");
+        registrar.addEventFilter(ActionEvent.ACTION, evento -> {
+            try {
+                validarFechasPortal(entrada, salida);
+                DatosOcupante[] datos = construirDistribucionPortal(ocupantes, disponibles, grupoPropuesto);
+                String[] codigos = codigosSeleccionadosPortal(disponibles, grupoPropuesto);
+                if (folio.getText().isBlank()) throw new IllegalArgumentException("El folio es obligatorio.");
+                reservas.registrarPortal(folio.getText().trim(), huespedActual.getDocumento(),
+                        codigos, datos, entrada.getValue(), salida.getValue(),
+                        LocalTime.parse(hora.getText().trim()));
+                mensaje.setText("Solicitud registrada como pendiente. Registra el anticipo del 30 % antes de 24 horas.");
+                consultarPerfil();
+            } catch (RuntimeException ex) {
+                estado.setText(ex.getMessage()); evento.consume();
+            }
+        });
+        dialogo.showAndWait();
+    }
+
+    private void buscarDisponiblesPortal(DatePicker entrada, DatePicker salida, ComboBox<String> orden,
+            ListView<DatosOcupante> ocupantes, ComboBox<ApartamentoDisponible> disponibles, ListView<ApartamentoDisponible> grupoPropuesto, Label estado) {
+        try {
+            validarFechasPortal(entrada, salida);
+            grupoPropuesto.getItems().clear();
+            if (ocupantes.getItems().isEmpty()) throw new IllegalArgumentException("Agrega al menos un ocupante.");
+            var encontrados = reservas.buscarDisponibles(entrada.getValue(), salida.getValue(),
+                    ocupantes.getItems().size(), orden.getValue());
+            disponibles.getItems().setAll(encontrados);
+            if (encontrados.length == 0) estado.setText("No hay un apartamento individual con capacidad suficiente. Prueba proponer varios.");
+            else { disponibles.getSelectionModel().selectFirst(); estado.setText("Selecciona un apartamento o propone una combinaciÃ³n."); }
+        } catch (RuntimeException ex) { estado.setText(ex.getMessage()); }
+    }
+
+    private void proponerGrupoPortal(DatePicker entrada, DatePicker salida, ListView<DatosOcupante> ocupantes,
+            ComboBox<ApartamentoDisponible> disponibles, ListView<ApartamentoDisponible> grupo, Label estado) {
+        try {
+            validarFechasPortal(entrada, salida);
+            if (ocupantes.getItems().isEmpty()) throw new IllegalArgumentException("Agrega al menos un ocupante.");
+            var propuesta = reservas.proponerGrupo(entrada.getValue(), salida.getValue(), ocupantes.getItems().size());
+            if (propuesta.length == 0) throw new IllegalArgumentException("No hay una combinaciÃ³n de apartamentos disponibles para todo el grupo.");
+            grupo.getItems().setAll(propuesta);
+            grupo.getSelectionModel().selectAll();
+            disponibles.getSelectionModel().clearSelection();
+            estado.setText("Propuesta: " + propuesta.length + " apartamento(s). Los ocupantes se distribuirÃ¡n automÃ¡ticamente por capacidad.");
+        } catch (RuntimeException ex) { grupo.getItems().clear(); estado.setText(ex.getMessage()); }
+    }
+
+    private void cotizarPortal(DatePicker entrada, DatePicker salida, ListView<DatosOcupante> ocupantes,
+            ComboBox<ApartamentoDisponible> disponibles, ListView<ApartamentoDisponible> grupo, Label estado, Dialog<Void> dialogo) {
+        try {
+            validarFechasPortal(entrada, salida);
+            DatosOcupante[] datos = construirDistribucionPortal(ocupantes, disponibles, grupo);
+            String[] codigos = codigosSeleccionadosPortal(disponibles, grupo);
+            var c = reservas.cotizarBorrador(codigos, datos, entrada.getValue(), salida.getValue());
+            StringBuilder detalle = new StringBuilder("Total: ").append(c.getTotal()).append("\n");
+            for (var a : c.apartamentos()) detalle.append(a.codigo()).append(": ").append(a.detalle()).append("\n");
+            Alert alerta = new Alert(Alert.AlertType.INFORMATION, detalle.toString(), ButtonType.OK);
+            alerta.initOwner(dialogo.getDialogPane().getScene().getWindow());
+            alerta.setTitle("CotizaciÃ³n de la estancia"); alerta.setHeaderText(c.cantidadNoches() + " noches");
+            alerta.showAndWait();
+            estado.setText("CotizaciÃ³n calculada. Puedes enviar la solicitud.");
+        } catch (RuntimeException ex) { estado.setText(ex.getMessage()); }
+    }
+
+    private static void validarFechasPortal(DatePicker entrada, DatePicker salida) {
+        if (entrada.getValue() == null || salida.getValue() == null
+                || !salida.getValue().isAfter(entrada.getValue())) {
+            throw new IllegalArgumentException("La salida debe ser posterior a la entrada.");
+        }
+    }
+
+    private static String[] codigosSeleccionadosPortal(
+            ComboBox<ApartamentoDisponible> disponible, ListView<ApartamentoDisponible> grupo) {
+        if (!grupo.getItems().isEmpty()) {
+            return grupo.getItems().stream().map(ApartamentoDisponible::codigo).toArray(String[]::new);
+        }
+        ApartamentoDisponible elegido = disponible.getValue();
+        if (elegido == null) throw new IllegalArgumentException("Busca y selecciona un apartamento o propone un grupo.");
+        return new String[] {elegido.codigo()};
+    }
+
+    private static DatosOcupante[] construirDistribucionPortal(
+            ListView<DatosOcupante> ocupantes, ComboBox<ApartamentoDisponible> disponible,
+            ListView<ApartamentoDisponible> grupo) {
+        if (ocupantes.getItems().isEmpty()) throw new IllegalArgumentException("Agrega al menos un ocupante.");
+        codigosSeleccionadosPortal(disponible, grupo);
+        ApartamentoDisponible[] apartamentos = grupo.getItems().isEmpty()
+                ? new ApartamentoDisponible[] {disponible.getValue()}
+                : grupo.getItems().toArray(ApartamentoDisponible[]::new);
+        return distribuirOcupantesPortal(
+                ocupantes.getItems().toArray(DatosOcupante[]::new), apartamentos);
+    }
+
+    static DatosOcupante[] distribuirOcupantesPortal(
+            DatosOcupante[] ocupantes, ApartamentoDisponible[] apartamentos) {
+        if (ocupantes == null || ocupantes.length == 0) {
+            throw new IllegalArgumentException("Agrega al menos un ocupante.");
+        }
+        if (apartamentos == null || apartamentos.length == 0) {
+            throw new IllegalArgumentException("Selecciona al menos un apartamento.");
+        }
+        int capacidad = 0;
+        for (ApartamentoDisponible apartamento : apartamentos) {
+            if (apartamento == null || apartamento.capacidad() <= 0
+                    || apartamento.codigo() == null || apartamento.codigo().isBlank()) {
+                throw new IllegalArgumentException("La propuesta contiene un apartamento invÃ¡lido.");
+            }
+            capacidad += apartamento.capacidad();
+        }
+        if (capacidad < ocupantes.length) {
+            throw new IllegalArgumentException("La capacidad total de los apartamentos no alcanza para todos los ocupantes.");
+        }
+        DatosOcupante[] resultado = new DatosOcupante[ocupantes.length];
+        int indiceApartamento = 0;
+        int asignadosEnApartamento = 0;
+        for (int i = 0; i < resultado.length; i++) {
+            while (indiceApartamento < apartamentos.length
+                    && asignadosEnApartamento >= apartamentos[indiceApartamento].capacidad()) {
+                indiceApartamento++;
+                asignadosEnApartamento = 0;
+            }
+            if (indiceApartamento >= apartamentos.length) {
+                throw new IllegalArgumentException("No fue posible distribuir todos los ocupantes.");
+            }
+            DatosOcupante dato = ocupantes[i];
+            if (dato == null || dato.nombre() == null || dato.nombre().isBlank()
+                    || dato.fechaNacimiento() == null) {
+                throw new IllegalArgumentException("Todos los ocupantes deben tener nombre y fecha de nacimiento.");
+            }
+            resultado[i] = new DatosOcupante(
+                    dato.nombre(), dato.fechaNacimiento(), apartamentos[indiceApartamento].codigo());
+            asignadosEnApartamento++;
+        }
+        return resultado;
+    }
     private void agregarFavorito() {
         if (!validarPerfil()) return;
         String seleccionado = seleccionarApartamento.getValue();

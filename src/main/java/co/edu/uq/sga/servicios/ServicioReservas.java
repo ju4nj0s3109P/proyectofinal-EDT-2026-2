@@ -126,16 +126,44 @@ public class ServicioReservas {
         reserva.marcarNoShow();
     }
 
+    /**
+     * Registra la entrada de los apartamentos preparados.
+     * La reserva permanece confirmada mientras queden apartamentos pendientes;
+     * pasa a EN_CURSO cuando todos sus apartamentos estǭn ocupados.
+     */
     public void registrarCheckIn(Reserva reserva) {
         validarReservaRegistrada(reserva, null, EstadoReserva.CONFIRMADA);
         Apartamento[] apartamentos = apartamentosDe(reserva);
+        int preparados = 0;
+        int ocupados = 0;
+
+        // Valida el conjunto completo antes de modificar estados.
         for (Apartamento apartamento : apartamentos) {
-            if (apartamento.getEstadoOperativo() != EstadoApartamento.PREPARADO) {
-                throw new ExcepcionDominio("Todos los apartamentos asignados deben estar preparados.");
+            EstadoApartamento estado = apartamento.getEstadoOperativo();
+            if (estado == EstadoApartamento.PREPARADO) {
+                preparados++;
+            } else if (estado == EstadoApartamento.OCUPADO) {
+                ocupados++;
+            } else if (estado != EstadoApartamento.PENDIENTE_PREPARACION
+                    && estado != EstadoApartamento.EN_PREPARACION) {
+                throw new ExcepcionDominio("El apartamento " + apartamento.getCodigo()
+                        + " no admite check-in por su estado operativo.");
             }
         }
-        reserva.iniciar();
-        for (Apartamento apartamento : apartamentos) apartamento.cambiarEstadoOperativo(EstadoApartamento.OCUPADO);
+
+        if (preparados == 0 && ocupados != apartamentos.length) {
+            throw new ExcepcionDominio("No hay apartamentos preparados para registrar la entrada.");
+        }
+
+        for (Apartamento apartamento : apartamentos) {
+            if (apartamento.getEstadoOperativo() == EstadoApartamento.PREPARADO) {
+                apartamento.cambiarEstadoOperativo(EstadoApartamento.OCUPADO);
+            }
+        }
+
+        if (ocupados + preparados == apartamentos.length) {
+            reserva.iniciar();
+        }
     }
 
     public void registrarCheckOut(Reserva reserva) {

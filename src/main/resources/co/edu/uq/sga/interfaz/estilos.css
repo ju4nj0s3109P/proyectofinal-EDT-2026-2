@@ -375,4 +375,43 @@
 
 .accion-secundaria:disabled {
     -fx-opacity: 0.45;
+}/* Matriz de disponibilidad por apartamento y noche */
+.calendario-encabezado {
+    -fx-background-color: #edf1e9;
+    -fx-background-radius: 7;
+    -fx-text-fill: #26382f;
+    -fx-font-weight: bold;
+    -fx-padding: 8 6;
+    -fx-alignment: center;
+}
+.calendario-apartamento {
+    -fx-background-color: #f7f8f5;
+    -fx-background-radius: 7;
+    -fx-text-fill: #26382f;
+    -fx-font-weight: bold;
+    -fx-padding: 8 10;
+}
+.celda-matriz-calendario {
+    -fx-background-radius: 7;
+    -fx-padding: 5 3;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+.celda-libre {
+    -fx-background-color: #e1f2e5;
+    -fx-text-fill: #24683a;
+}
+.celda-ocupada {
+    -fx-background-color: #e2edfc;
+    -fx-text-fill: #245a96;
+}
+.celda-bloqueada {
+    -fx-background-color: #fbe3e3;
+    -fx-text-fill: #a13030;
+}
+.leyenda-calendario {
+    -fx-background-radius: 7;
+    -fx-padding: 5 10;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
 }
