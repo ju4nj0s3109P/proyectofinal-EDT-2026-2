@@ -1,35 +1,25 @@
 # Datos de prueba
 
-## Mapa del edificio
+Los archivos utilizan UTF-8, encabezados y punto y coma como separador. Los valores de lista dentro de una celda se separan con `|`.
 
-`mapa-edificio.txt` está codificado en UTF-8 y usa `|` para separar los campos.
-Las líneas vacías y las que empiezan con `#` se ignoran.
+## Escenario del alojamiento
 
-- `NODO|id|tipo|nombre` declara una ubicación con un identificador único.
-- `PASILLO|origen|destino|metros` conecta dos ubicaciones en ambos sentidos.
+- `apartamentos.csv`: cinco apartamentos, tarifas y estado operativo.
+- `huespedes.csv`: diez huéspedes ficticios.
+- `reservas.csv`: veinte reservas directas confirmadas. Los apartamentos se separan con `|`; cada ocupante usa `nombre:yyyy-MM-dd`. La llegada usa HH:mm y la creación ISO-8601.
+- `ubicaciones.csv` y `pasillos.csv`: mapa del edificio. Los pasillos son bidireccionales y sus distancias deben ser positivas.
+- `preparaciones.csv`: tareas iniciales de preparación por apartamento.
 
-Los nodos deben declararse antes de los pasillos que los usan.
+## Personal y perfiles
 
-## Escenario CSV
+- `empleados.csv`: documento, nombre, teléfono, correo, rol y estado activo (`true`/`false`). Roles permitidos: ADMINISTRADOR, RECEPCIONISTA y PREPARACION.
+- `turnos-recepcion.csv`: documentos de recepcionistas en el orden de la rotación circular. Solo se admiten empleados activos con rol RECEPCIONISTA.
+- `perfiles-huespedes.csv`: documento del huésped y códigos de apartamentos favoritos separados por `|`. El historial se alimenta cuando una estancia se finaliza desde la aplicación.
 
-Los archivos utilizan UTF-8, encabezados y punto y coma como separador.
+## Folios
 
-- `apartamentos.csv`: datos, tarifas y estados de los apartamentos.
-- `huespedes.csv`: perfiles personales de los huéspedes.
-- `reservas.csv`: reservas de demostración y sus referencias a huéspedes y apartamentos.
-- `ubicaciones.csv`: identificador, tipo y nombre de cada nodo.
-- `pasillos.csv`: origen, destino y distancia en metros.
-- `preparaciones.csv`: tareas iniciales de preparación.
+- `movimientos-folios.csv`: folio, tipo, monto, descripción y fecha/hora.
+- La carga inicial admite CARGO y PAGO; los movimientos de reverso y devolución los genera el servicio para conservar las reglas del folio.
+- Cada folio se crea al registrar su reserva y después se cargan sus movimientos iniciales.
 
-En `reservas.csv`, los apartamentos se separan con `|`; cada ocupante usa
-`nombre:yyyy-MM-dd`. La llegada se expresa como hora local HH:mm y puede
-dejarse vacía para usar las 12:00. La fecha y hora de creación usa ISO-8601.
-
-Los códigos de apartamentos deben coincidir con los nodos de tipo
-APARTAMENTO del mapa. Debe existir exactamente una recepción.
-
-Los pasillos son bidireccionales, tienen distancias positivas y no
-pueden repetirse, aunque se escriban en sentido contrario.
-
-Los cambios en los archivos se leen al reiniciar la aplicación.
-El botón «Actualizar estados» consulta los datos en memoria.
+Todos los datos personales de estos archivos son ficticios y se usan únicamente para demostración. Los cambios se leen al reiniciar la aplicación.

@@ -1,3 +1,11 @@
 documento;nombre;fechaNacimiento;telefono;correo;fotografia
 DEMO001;Sofia Gómez;1995-06-12;3000000001;sofia@gmail.com;
 DEMO002;Carlos Ruiz;1988-09-23;3000000002;carlos@gmail.com;
+DEMO003;Valentina Ríos;1999-02-14;3000000003;valentina@gmail.com;
+DEMO004;Andrés López;1992-11-03;3000000004;andres@gmail.com;
+DEMO005;Mariana Torres;1997-07-25;3000000005;mariana@gmail.com;
+DEMO006;Daniel Castro;1985-04-18;3000000006;daniel@gmail.com;
+DEMO007;Laura Gómez;2000-01-09;3000000007;laura@gmail.com;
+DEMO008;Samuel Martínez;1994-08-30;3000000008;samuel@gmail.com;
+DEMO009;Camila Herrera;1998-12-05;3000000009;camila@gmail.com;
+DEMO010;Nicolás Vargas;1990-05-21;3000000010;nicolas@gmail.com;

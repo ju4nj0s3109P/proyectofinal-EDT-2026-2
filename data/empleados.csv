@@ -1,0 +1,5 @@
+documento;nombre;telefono;correo;rol;activo
+EMP001;Ana María Pérez;3100000001;ana@apartasuites.test;RECEPCIONISTA;true
+EMP002;Luis Fernando Díaz;3100000002;luis@apartasuites.test;RECEPCIONISTA;true
+EMP003;Paula Andrea Gómez;3100000003;paula@apartasuites.test;ADMINISTRADOR;true
+EMP004;Jorge Iván Ruiz;3100000004;jorge@apartasuites.test;PREPARACION;true

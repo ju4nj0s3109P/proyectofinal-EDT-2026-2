@@ -1,3 +1,6 @@
 codigo;nombre;bloque;piso;dormitorios;capacidad;caracteristicas;tarifaBaja;tarifaMedia;tarifaAlta;estado;motivo
 A101;Apartamento 101;A;1;2;4;Wifi|Cocina|Agua caliente;65000;85000;110000;PENDIENTE_PREPARACION;
 A102;Apartamento 102;A;1;1;2;Wifi|Cocina;55000;75000;95000;PENDIENTE_PREPARACION;
+A103;Apartamento 103;A;2;2;4;Wifi|Cocina|Balcón;70000;90000;115000;PENDIENTE_PREPARACION;
+A104;Apartamento 104;B;1;1;3;Wifi|Cocina|TV;60000;80000;100000;PENDIENTE_PREPARACION;
+A105;Apartamento 105;B;2;2;4;Wifi|Cocina|Agua caliente|TV;75000;95000;120000;PENDIENTE_PREPARACION;
